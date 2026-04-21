@@ -41,7 +41,7 @@ The extension is a single-student tool. It does not integrate with advisor-facin
 |---|---|
 | ADR register (the reasoning behind every shaping decision) | [`notes/decisions/`](notes/decisions/) |
 | DegreeWorks API reference (reverse-engineered) | [`notes/degreeworks-api-reference.md`](notes/degreeworks-api-reference.md) |
-| Implementation sprint plan + status | [`notes/IMPLEMENTATION-PLAN.md`](notes/IMPLEMENTATION-PLAN.md) |
+| Implementation plan + status | [`notes/IMPLEMENTATION-PLAN.md`](notes/IMPLEMENTATION-PLAN.md) |
 | End-to-end testing guide | [`notes/TESTING.md`](notes/TESTING.md) |
 | Post-audit fix register | [`notes/AUDIT-2026-04-16.md`](notes/AUDIT-2026-04-16.md) |
 | The PII boundary in code | [`src/background/agent/degreeworks-audit-to-text.ts`](src/background/agent/degreeworks-audit-to-text.ts) |

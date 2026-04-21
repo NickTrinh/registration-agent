@@ -1,6 +1,6 @@
 # End-to-End Smoke Test Checklist
 
-Walkthrough for verifying the full `patch-sprint` build works in Chrome, end-to-end. Designed to be runnable by a human OR followed by a Claude Code session that needs to verify the branch.
+Walkthrough for verifying the full build works in Chrome, end-to-end. Designed to be runnable by a human OR followed by a Claude Code session that needs to verify the branch.
 
 This is **step 1 of the linear path forward** in [`IMPLEMENTATION-PLAN.md`](IMPLEMENTATION-PLAN.md). Pass this before doing any further feature work.
 
@@ -23,8 +23,7 @@ If any of those are missing, fix them first. The smoke test will fail in confusi
 ### Step 1.1 — Build the extension
 
 ```bash
-cd registration-helper
-git checkout patch-sprint
+cd registration-agent
 npm install
 npm run dev
 ```
@@ -294,11 +293,11 @@ If anything fails, capture the failure mode (console output, screenshot, exact e
 
 ## What to save before compacting context
 
-If a Claude Code session is running this checklist and approaching a context limit, save state to the workspace journal at [`_ops/journal/YYYY-MM-DD.md`](../../../_ops/journal/) (outer workspace repo). Capture:
+If a Claude Code session is running this checklist and approaching a context limit, save state to your working notes before handing off. Capture:
 
 1. Which Phase you completed
 2. Whether the PII check passed
 3. The curator candidate quality assessment (especially anything you'd want to remember for prompt tuning)
 4. Any anomalies that don't yet have a clear root cause
 
-Then end the session. The next session reads the journal + this checklist + `IMPLEMENTATION-PLAN.md` and resumes from the Phase you stopped at.
+Then end the session. The next session reads those notes + this checklist + `IMPLEMENTATION-PLAN.md` and resumes from the Phase you stopped at.

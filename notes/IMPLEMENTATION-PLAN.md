@@ -175,7 +175,7 @@ These are enforced by ADRs 0003, 0004, 0005, 0008, 0009 and locked into the sour
 
 ## If you hit context limits mid-session
 
-Save state to the current day's entry in [`_ops/journal/YYYY-MM-DD.md`](../../../_ops/journal/) (outer workspace repo — not this repo). Capture:
+Save state to your working notes before handing off. Capture:
 
 1. Which numbered step in "Linear path forward" you're currently on
 2. Which files you've edited in this session
@@ -183,4 +183,4 @@ Save state to the current day's entry in [`_ops/journal/YYYY-MM-DD.md`](../../..
 4. Any error message you're stuck on
 5. The immediate next action
 
-Then end the session. The next session reads the journal + this file + the README to reorient.
+Then end the session. The next session reads those notes + this file + the README to reorient.

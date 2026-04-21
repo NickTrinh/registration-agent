@@ -16,9 +16,8 @@ End-to-end test walkthrough for Nick, Paromita, and anyone else running the exte
 ### Build and load
 
 ```bash
-git clone https://github.com/NickTrinh/registration-helper
-cd registration-helper
-git checkout patch-sprint
+git clone https://github.com/NickTrinh/registration-agent
+cd registration-agent
 npm install
 npm run build   # produces dist/
 ```
