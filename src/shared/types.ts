@@ -89,7 +89,7 @@ export interface SystemAction {
 // for durable facts about the student (interests, constraints, goals). The
 // main chat model (Sonnet) sees only the short `description` in a routing
 // index, and must call `recall_memory` to load the full `content` on demand.
-// See notes/IMPLEMENTATION-PLAN.md for the full design rationale.
+// See ADRs 0011–0015 in notes/decisions/ for the full design rationale.
 
 export type MemoryType = "interest" | "constraint" | "goal" | "decision" | "note";
 

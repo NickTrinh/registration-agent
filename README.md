@@ -248,10 +248,7 @@ registration-agent/
 ├── manifest.json                                ← Chrome MV3 manifest (host_permissions, content_scripts, side_panel)
 ├── package.json                                 ← npm scripts + deps (Vite, React, idb, @anthropic-ai/sdk)
 ├── notes/
-│   ├── IMPLEMENTATION-PLAN.md                   ← implementation plan + status
-│   ├── TESTING.md                               ← end-to-end testing guide
-│   ├── SMOKE-TEST.md                            ← verification checklist
-│   ├── AUDIT-2026-04-16.md                      ← post-shipping code audit
+│   ├── TESTING.md                               ← demo walkthrough
 │   ├── degreeworks-api-reference.md             ← reverse-engineered Fordham DegreeWorks JSON API reference
 │   └── decisions/                               ← ADR register
 │       ├── README.md                            ← ADR convention + Index

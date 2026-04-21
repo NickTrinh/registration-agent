@@ -4,8 +4,8 @@
 // durable facts about the student (interests, constraints, goals, decisions).
 // The main chat model (Sonnet) sees only a short `description` for each entry
 // in a routing index, and must call `recall_memory` to page in the full
-// `content` on demand. See projects/ai-challenge/registration-helper/notes/
-// IMPLEMENTATION-PLAN.md for the full design rationale.
+// `content` on demand. See ADRs 0011–0015 in notes/decisions/ for the full
+// design rationale.
 //
 // Scope: single bucket per extension install (not per-Banner-ID namespaced),
 // capped at MAX_MEMORIES with drop-oldest eviction by `createdAt`. The service
