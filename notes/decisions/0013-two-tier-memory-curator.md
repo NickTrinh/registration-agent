@@ -1,6 +1,6 @@
 # 0013 — Two-Tier Memory Curator (Hard Facts + Provisional Interests)
 
-- **Status**: Accepted
+- **Status**: Accepted · Revisited 2026-04-17
 - **Date**: 2026-04-15
 - **Related**: Extends 0011 (background-extractor memory curator), extends 0012 (routing-table memory index)
 

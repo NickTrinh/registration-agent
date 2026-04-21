@@ -1,8 +1,8 @@
 # 0011 — Background-extractor memory curator (two-model pattern)
 
-- **Status**: Accepted
+- **Status**: Accepted · Extended by ADR 0013 (two-tier split)
 - **Date**: 2026-04-15
-- **Related**: enables 0012 (routing-table memory index); runs under 0003 (worker owns the Haiku call)
+- **Related**: enables 0012 (routing-table memory index); runs under 0003 (worker owns the Haiku call); extended by 0013 (single-tier → two-tier)
 
 ## Context
 

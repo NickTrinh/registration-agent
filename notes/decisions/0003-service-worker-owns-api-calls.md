@@ -1,8 +1,8 @@
 # 0003 — Service worker owns all third-party API calls; content scripts are thin taps
 
-- **Status**: Accepted
+- **Status**: Accepted · Amended by ADR 0016 for POST endpoints
 - **Date**: 2026-04-14
-- **Related**: cascades from 0002; complements planned "single-writer for `chrome.storage.local`" ADR
+- **Related**: cascades from 0002; amended by 0016 (CORS carveout for What-If POST)
 
 ## Context
 

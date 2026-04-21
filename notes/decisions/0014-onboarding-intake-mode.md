@@ -1,6 +1,6 @@
 # 0014 — Onboarding Intake Mode
 
-- **Status**: Accepted
+- **Status**: Accepted · Revisited 2026-04-18
 - **Date**: 2026-04-15
 - **Related**: Depends on 0011 (curator), depends on 0012 (memory store), complements 0013 (two-tier curator)
 

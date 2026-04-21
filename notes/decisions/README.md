@@ -116,7 +116,7 @@ Living table of ADRs in this project. Add a row when you commit a new ADR. Sort 
 |---|-------|--------|------|
 | [0001](./0001-fork-registration-helper-drop-python.md) | Fork NickTrinh/registration-helper and drop the Python approach | Accepted | 2026-04-13 |
 | [0002](./0002-degreeworks-json-api-not-html-scraping.md) | Use DegreeWorks JSON API instead of scraping the HTML DOM | Accepted | 2026-04-14 |
-| [0003](./0003-service-worker-owns-api-calls.md) | Service worker owns all third-party API calls; content scripts are thin taps | Accepted | 2026-04-14 |
+| [0003](./0003-service-worker-owns-api-calls.md) | Service worker owns all third-party API calls; content scripts are thin taps · Amended by 0016 for POST endpoints | Accepted | 2026-04-14 |
 | [0004](./0004-cookie-auth-credentials-include.md) | Cookie-based auth via `credentials: "include"` (no manual token handling) | Accepted | 2026-04-14 |
 | [0005](./0005-dispatch-on-symbolic-name-not-numeric-nodetype.md) | Dispatch on symbolic `.name` / `.ruleType`, not numeric `nodeType` | Accepted | 2026-04-14 |
 | [0006](./0006-unified-post-audit-for-whatif-and-lookahead.md) | Unified POST `/api/audit` for What-If (and Look-Ahead) | Accepted | 2026-04-14 |
@@ -124,7 +124,7 @@ Living table of ADRs in this project. Add a row when you commit a new ADR. Sort 
 | [0008](./0008-banner-term-bind-and-term-wide-pagination.md) | Banner session-bind dance + term-wide pagination (not per-subject filters) | Accepted | 2026-04-14 |
 | [0009](./0009-pii-boundary-at-renderer.md) | Safe-by-construction PII boundary at the audit-to-text renderer | Accepted | 2026-04-15 |
 | [0010](./0010-prompt-caching-at-system-breakpoint.md) | Prompt caching at the system-prompt breakpoint | Accepted | 2026-04-15 |
-| [0011](./0011-background-extractor-memory-curator.md) | Background-extractor memory curator (two-model pattern) | Accepted | 2026-04-15 |
+| [0011](./0011-background-extractor-memory-curator.md) | Background-extractor memory curator (two-model pattern) · Extended by 0013 (two-tier split) | Accepted | 2026-04-15 |
 | [0012](./0012-routing-table-memory-index.md) | Routing-table memory index with `recall_memory` tool (MemGPT-style paging) | Accepted | 2026-04-15 |
 | [0013](./0013-two-tier-memory-curator.md) | Two-tier memory curator (hard facts + provisional interests) · Revisited 2026-04-17 | Accepted | 2026-04-15 |
 | [0014](./0014-onboarding-intake-mode.md) | Onboarding intake mode with `save_memory` tool · Revisited 2026-04-18 | Accepted | 2026-04-15 |
