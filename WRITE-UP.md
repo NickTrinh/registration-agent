@@ -1,8 +1,8 @@
 # Fordham Registration Helper — Submission Write-Up
 
-**Team**: Patch Shields, Nick Trinh, Paromita Talukder
+**Team Gradient**: Patch Shields, Nick Trinh, Paromita Talukder
 **Competition**: Fordham AI Solutions Challenge 2026
-**Repository**: [`github.com/NickTrinh/registration-helper`](https://github.com/NickTrinh/registration-helper) · Branch: `submission/2026-04-19`
+**Repository**: [`github.com/NickTrinh/registration-agent`](https://github.com/NickTrinh/registration-agent)
 **Date**: 2026-04-19
 
 ---

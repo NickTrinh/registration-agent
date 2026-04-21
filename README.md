@@ -320,7 +320,7 @@ Source of truth for the data-transfer and auth decisions is [ADR 0004](notes/dec
 
 ## Team
 
-Built for the Fordham AI Solutions Challenge 2026 by a three-person team: [@NickTrinh](https://github.com/NickTrinh), [@pqtch](https://github.com/pqtch), and Paromita Talukder. Upstream scaffold by @NickTrinh.
+Built by **Team Gradient** for the Fordham AI Solutions Challenge 2026: [@NickTrinh](https://github.com/NickTrinh), [@pqtch](https://github.com/pqtch), and [@BlazedDonuts](https://github.com/BlazedDonuts). Upstream scaffold by @NickTrinh.
 
 ---
 
