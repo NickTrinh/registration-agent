@@ -2,7 +2,6 @@
 
 - **Status**: Accepted
 - **Date**: 2026-04-14
-- **Session**: [`_ops/journal/2026-04-14.md`](../../../../_ops/journal/2026-04-14.md)
 - **Related**: depends on 0002 (JSON API) and 0005 (parser grammar)
 
 ## Context

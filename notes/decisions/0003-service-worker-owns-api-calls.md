@@ -2,7 +2,6 @@
 
 - **Status**: Accepted
 - **Date**: 2026-04-14
-- **Session**: [`_ops/journal/2026-04-14.md`](../../../../_ops/journal/2026-04-14.md)
 - **Related**: cascades from 0002; complements planned "single-writer for `chrome.storage.local`" ADR
 
 ## Context

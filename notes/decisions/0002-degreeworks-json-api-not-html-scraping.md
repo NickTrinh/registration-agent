@@ -2,7 +2,6 @@
 
 - **Status**: Accepted
 - **Date**: 2026-04-14
-- **Session**: [`_ops/journal/2026-04-14.md`](../../../../_ops/journal/2026-04-14.md)
 - **Related**: builds on 0001; forces 0003 and 0004; enables 0005, 0006, 0007
 
 ## Context

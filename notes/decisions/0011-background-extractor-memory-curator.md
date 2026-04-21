@@ -2,7 +2,6 @@
 
 - **Status**: Accepted
 - **Date**: 2026-04-15
-- **Session**: [`_ops/journal/2026-04-15.md`](../../../../_ops/journal/2026-04-15.md)
 - **Related**: enables 0012 (routing-table memory index); runs under 0003 (worker owns the Haiku call)
 
 ## Context

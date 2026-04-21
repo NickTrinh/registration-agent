@@ -2,7 +2,6 @@
 
 - **Status**: Accepted
 - **Date**: 2026-04-15
-- **Session**: [`_ops/journal/2026-04-15.md`](../../../../_ops/journal/2026-04-15.md)
 - **Related**: depends on 0011 (the curator supplies memory content); runs under 0003 (worker owns the tool executor); affects 0010 (memory index is part of the cached prefix)
 
 ## Context

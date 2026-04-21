@@ -2,7 +2,6 @@
 
 - **Status**: Accepted
 - **Date**: 2026-04-15
-- **Session**: [`_ops/journal/2026-04-15.md`](../../../../_ops/journal/2026-04-15.md)
 - **Related**: runs under 0003 (worker owns the Anthropic call site); downstream of 0012 (memory index is part of the cached prefix)
 
 ## Context

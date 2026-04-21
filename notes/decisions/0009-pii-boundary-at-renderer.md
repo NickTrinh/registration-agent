@@ -2,7 +2,6 @@
 
 - **Status**: Accepted
 - **Date**: 2026-04-15
-- **Session**: [`_ops/journal/2026-04-15.md`](../../../../_ops/journal/2026-04-15.md)
 - **Related**: depends on 0002 (JSON API supplies the PII); runs under 0003 (worker owns the fetches)
 
 ## Context

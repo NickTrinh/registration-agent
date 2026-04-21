@@ -7,7 +7,7 @@ ADRs are the evergreen layer. They sit alongside two other documentation layers:
 | Layer | Where | What it captures | Lifetime |
 |-------|-------|------------------|----------|
 | Commits | `git log` | What changed, line-level | Forever, but rarely re-read |
-| Journals | [`_ops/journal/YYYY-MM-DD.md`](../../../../_ops/journal/) | Day-by-day narrative — insights, dead ends, pivots | Sprint-scoped |
+| Journals | Internal team notes (not shipped with this repo) | Day-by-day narrative — insights, dead ends, pivots | Project-scoped |
 | **ADRs** | **this folder** | **Shaping decisions — what / why / alternatives** | **Project lifetime** |
 
 Judges, new teammates, and future Claude sessions read the ADRs first. Journals are the messy process that feeds into ADRs once a decision crystallizes.
@@ -51,7 +51,7 @@ Don't write one for:
 
 Every ADR has these sections (see `TEMPLATE.md` for the scaffold):
 
-1. **Header** — number, title, status, date, session journal link
+1. **Header** — number, title, status, date, related ADRs
 2. **Context** — what was the problem, what forced a decision now. 1–3 paragraphs.
 3. **Decision** — what we chose, plainly stated. Usually the shortest section.
 4. **Alternatives considered** — what was rejected and why. **The most valuable section** — at least 2 alternatives. If there was only one path, this isn't ADR-worthy.
@@ -63,7 +63,6 @@ Optional: **Revisit if...** (explicit triggers to reconsider), **References** (P
 
 - First-person plural ("we decided") is fine. Passive voice is not.
 - Be specific about what was on the table. *"We considered MemGPT-style paging but rejected per-turn recall because..."* beats *"we looked at other approaches."*
-- Cite the journal entry when a decision came out of a long conversation: `See _ops/journal/2026-04-15.md`.
 - Keep it tight — about one page (~400–600 words). If an ADR sprawls past two pages, it's probably two decisions fused; split them.
 - Don't hedge retroactively. If the decision turned out wrong, supersede the ADR with a new one rather than softening the old one.
 

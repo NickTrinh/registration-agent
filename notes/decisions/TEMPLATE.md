@@ -10,7 +10,6 @@
 
 - **Status**: Proposed <!-- or: Accepted | Superseded by NNNN | Deprecated -->
 - **Date**: YYYY-MM-DD
-- **Session**: [`_ops/journal/YYYY-MM-DD.md`](../../../../_ops/journal/YYYY-MM-DD.md) <!-- journal entry this came out of; delete if n/a -->
 - **Related**: <!-- other ADRs, e.g. "depends on 0001, superseded by 0009" -->
 
 ## Context
