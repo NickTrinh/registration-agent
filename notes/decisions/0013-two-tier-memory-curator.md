@@ -52,19 +52,19 @@ Vectorize each user message, store embeddings, cluster periodically, promote clu
 
 ## Revisited — 2026-04-17
 
-After live testing and a fresh-eyes code review, four friction points emerged:
+After live testing and a code review, four friction points emerged:
 
 1. **Silent saves felt invasive.** The curator was writing memories without any UI signal. Students didn't know memories were being created until they opened Settings.
 2. **Students couldn't ask to save.** Saying "remember I want X" in normal chat didn't actually save — the curator *might* catch it later, but Sonnet had no `save_memory` tool in normal mode.
 3. **The "Developing interests" UI section was confusing.** Students didn't understand why there were two lists. The provisional tier is implementation detail, not something they should reason about.
 4. **The separate Haiku consolidator was redundant.** The store-level Jaccard dedup in `addMemory` + the curator's "don't re-extract" rule caught most of what the consolidator did, at zero extra Haiku cost.
 
-We held a design-axis review with the user and locked in four choices. Each is implemented in commit `ebaebf8`:
+Across a design review we locked in four changes, all shipped together:
 
-- **Axis 1 = B** — Expose `save_memory` in normal chat mode alongside onboarding. Students can now explicitly save via "remember X" and Sonnet persists directly. Best of curator + explicit-request worlds.
-- **Axis 2 = B + D** — Single-slot memory-save toast above the input bar (green chip, 3s auto-dismiss, replaced by the next save) + user-facing Settings toggle "Auto-save memories from chat" (default ON). Consent + transparency without clutter.
-- **Axis 3 = D** — Hide the "Developing interests" Settings section; provisional store continues to accumulate internally. Students see only the memories tier; the provisional tier is developer-only.
-- **Axis 4 = C** — Delete the standalone `memory-consolidator.ts` + `CONSOLIDATE_MEMORIES` handler + Settings button. Trust the Jaccard dedup at write-time and the curator's skip-if-exists rule to prevent duplicates in the first place.
+- **Exposed `save_memory` in normal chat** alongside onboarding. Students can now explicitly save by saying "remember X" and Sonnet persists directly. The background curator remains — the advisor captures both the curator's passive observation and the student's explicit request, instead of forcing a choice between them.
+- **Added a single-slot memory-save toast above the input bar** (green chip, 3-second auto-dismiss, replaced by the next save), plus a Settings toggle "Auto-save memories from chat" (default ON). The toast provides consent and transparency without cluttering the chat; the toggle gives students control without forcing them to understand the two-tier architecture.
+- **Hid the "Developing interests" Settings section.** The provisional store continues to accumulate internally, but students see only the memories tier. The provisional tier is developer-only — an implementation detail, not a user-facing concept.
+- **Deleted the standalone `memory-consolidator.ts`** along with its `CONSOLIDATE_MEMORIES` handler and Settings button. The Jaccard dedup at write-time and the curator's skip-if-exists rule already prevent duplicates at the source; a dedicated consolidator pass was redundant.
 
 Net effect: 474 lines deleted, 229 added. The refactor made the system simpler AND more responsive.
 
