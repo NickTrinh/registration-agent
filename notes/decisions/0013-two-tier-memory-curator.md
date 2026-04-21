@@ -33,7 +33,7 @@ Track topic tallies in a key-value store, increment mechanically on keyword matc
 
 ### Alternative C: Embedding-based clustering
 
-Vectorize each user message, store embeddings, cluster periodically, promote clusters that cross a density threshold. Elegant for research but requires an embedding model, vector storage, and clustering infrastructure — overkill for a sprint deadline and a Chrome extension's resource budget.
+Vectorize each user message, store embeddings, cluster periodically, promote clusters that cross a density threshold. Elegant for research but requires an embedding model, vector storage, and clustering infrastructure — overkill for this project's scope and a Chrome extension's resource budget.
 
 ## Consequences
 

@@ -29,7 +29,7 @@ Don't write one for:
 - Choices that reverse cheaply
 - Anything a `git log` entry with a good commit body already captures
 
-**Target for this sprint: 5–10 ADRs total.** If you're writing 20, the bar is too low and the signal-to-noise tanks. If you're writing 2, you're probably missing shaping decisions — check the journal for ones that got buried.
+**Aim for roughly 5–10 ADRs per phase of work.** If you're writing 20, the bar is too low and the signal-to-noise tanks. If you're writing 2, you're probably missing shaping decisions worth capturing.
 
 ---
 
@@ -73,7 +73,7 @@ Optional: **Revisit if...** (explicit triggers to reconsider), **References** (P
 - **Superseded by NNNN** — replaced by a later ADR (include forward link)
 - **Deprecated** — no longer relevant but kept for historical context
 
-Most ADRs in this sprint will be **Accepted** from the moment they're written because we write them alongside implementation, not before.
+Most ADRs in this project are **Accepted** from the moment they're written because we write them alongside implementation, not before.
 
 ---
 

@@ -39,7 +39,7 @@ Commits the project to TypeScript/React/MV3 for the remainder. Inherits the fork
 
 Most consequentially: puts the extension inside the real DegreeWorks tab with real session cookies. That is the architectural move that unlocks the entire later JSON-API path (ADR 0002), because we can call DegreeWorks endpoints with `credentials: "include"` (ADR 0004) and inherit the user's auth — no separate login flow needed.
 
-Locks us to Chrome. An extension is a demo-ready surface for a competition demo (open the tab, open the side panel, ask a question, judges see it live) but isn't portable to Firefox/Safari without work we won't do this sprint.
+Locks us to Chrome. An extension is a demo-ready surface for a competition demo (open the tab, open the side panel, ask a question, judges see it live) but isn't portable to Firefox/Safari without work we've set aside for now.
 
 ## References
 

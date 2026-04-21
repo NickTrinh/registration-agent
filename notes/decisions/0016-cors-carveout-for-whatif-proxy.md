@@ -43,13 +43,13 @@ Rejected: MAIN gives the injected code access to the page's JS globals (React in
 
 If `tabs.query` finds no dw-prod tab, open one programmatically and inject into it.
 
-Rejected for the sprint window: opens a tab the user didn't ask for mid-chat; creates a flash of DW UI while the extension is supposed to feel invisible; race between tab-ready and script-inject adds complexity. The `DegreeWorksNoTabError` message ("Open DegreeWorks and retry") is low-friction and honest about what's happening. Revisitable post-submission.
+Rejected for now: opens a tab the user didn't ask for mid-chat; creates a flash of DW UI while the extension is supposed to feel invisible; race between tab-ready and script-inject adds complexity. The `DegreeWorksNoTabError` message ("Open DegreeWorks and retry") is low-friction and honest about what's happening. Revisitable later.
 
 ### Alternative D: Server-side proxy (our own backend relays the POST)
 
 Stand up a tiny backend that holds session cookies and forwards POST /audit. Decouples entirely from tab state.
 
-Rejected: reintroduces the hosting + auth problem that ADR 0001 was specifically written to avoid. A submission-deadline sprint is not the time to add a server. Also: student cookies would leave the student's device, which is worse privacy-wise than the current design.
+Rejected: reintroduces the hosting + auth problem that ADR 0001 was specifically written to avoid. Adding a server is out of scope for this project and introduces complexity the tab-proxy approach sidesteps. Also: student cookies would leave the student's device, which is worse privacy-wise than the current design.
 
 ## Consequences
 

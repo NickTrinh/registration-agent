@@ -37,7 +37,7 @@ Rejected as a default. The audit has hundreds of rule nodes per student, and a s
 
 **Closes the "complete nodeType enum" known-unknown** — not by completing it, but by demonstrating it isn't needed. The reference doc was updated to reflect this resolution and the item moved to the "Resolved ✅" section.
 
-**Robust to rules we haven't seen yet.** Any new qualifier or rule type can be added by writing a new branch keyed on its `.name` / `.ruleType` value; unknown types fall through to a generic label renderer without crashing. This is the right degradation behavior for a parser that must handle arbitrary Fordham degree structures we haven't seen in Patch's audit.
+**Robust to rules we haven't seen yet.** Any new qualifier or rule type can be added by writing a new branch keyed on its `.name` / `.ruleType` value; unknown types fall through to a generic label renderer without crashing. This is the right degradation behavior for a parser that must handle arbitrary Fordham degree structures we haven't seen in the audits we captured.
 
 **Couples the parser to Ellucian's Scribe vocabulary.** Strings like `"MAXCLASS"`, `"NONEXCLUSIVE"`, `"MINGPA"` are keywords in the Scribe rule language that Ellucian ships and that registrars write against. They're the most stable identifier Ellucian exposes — more stable than internal DB integer assignments.
 

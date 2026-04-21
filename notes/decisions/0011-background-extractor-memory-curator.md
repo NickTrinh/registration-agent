@@ -64,7 +64,7 @@ Embed every message, store embeddings, retrieve top-K similar past messages per 
 
 **Curator failures are invisible to the user**: every call path is wrapped in `.catch()`. If Haiku is slow, flaky, returns malformed JSON, or throws on a network hiccup, the student sees nothing; only the service worker log shows the issue.
 
-**Two-model pattern mirrors DeepSeek V3.2's gating network** — independent intuition from the user, independently validated by the background-extractor literature from OpenAI production, A-MEM, AgeMem, MIRIX, RAISE, and MemGPT. This convergence is demo-ready context: "how does this memory system work? same pattern as DeepSeek's MoE routing — one small model decides, the big model consumes."
+**Two-model pattern mirrors DeepSeek V3.2's gating network** — an intuition we arrived at independently, then validated against the background-extractor literature from OpenAI production, A-MEM, AgeMem, MIRIX, RAISE, and MemGPT. This convergence is demo-ready context: "how does this memory system work? same pattern as DeepSeek's MoE routing — one small model decides, the big model consumes."
 
 **Extensibility is cheap**: adding a memory type (e.g. `deadline`) is a prompt change; adding per-Banner-ID namespacing is a storage-key change; adding consolidation (merging related memories, pruning stale ones) is a new pass over the memory list. Each extension has a clean insertion point without restructuring the curator.
 
@@ -81,4 +81,4 @@ Embed every message, store embeddings, retrieve top-K similar past messages per 
 - [`src/background/agent/memory-curator.ts`](../../src/background/agent/memory-curator.ts) — the curator implementation, including the full extraction prompt with BAD/GOOD description examples.
 - [`src/background/service-worker.ts`](../../src/background/service-worker.ts) — the fire-and-forget integration after `AI_DONE`.
 - [`src/background/agent/memory-store.ts`](../../src/background/agent/memory-store.ts) — the underlying CRUD that `addMemory()` writes through.
-- Related literature: MemGPT (UC Berkeley 2023), A-MEM, AgeMem, MIRIX, LangMem, OpenAI production memory architecture. DeepSeek V3.2 gating-network paper cited as the user's independent intuition anchor.
+- Related literature: MemGPT (UC Berkeley 2023), A-MEM, AgeMem, MIRIX, LangMem, OpenAI production memory architecture. DeepSeek V3.2 gating-network paper cited as the independent intuition anchor.

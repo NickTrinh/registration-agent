@@ -10,9 +10,9 @@ DegreeWorks surfaces three features in the UI that each return "an audit" and th
 
 1. **Regular audit** — recompute the student's audit against their current curriculum. Fired on page load or when the "Process New" button is clicked on the main worksheet.
 2. **What-If audit** — "what would my audit look like if I swapped in this major / minor / concentration / college?" Different worksheet tab in DegreeWorks UI.
-3. **Look-Ahead audit** — "what would my audit look like if I add these hypothetical courses I haven't taken?" Another worksheet tab. The `SDLOKAHD` role in Patch's JWT proves it's enabled for his account.
+3. **Look-Ahead audit** — "what would my audit look like if I add these hypothetical courses I haven't taken?" Another worksheet tab. The `SDLOKAHD` role appeared in our test JWT, confirming it's enabled at Fordham.
 
-Discovery: the regular audit is `GET /api/audit?studentId=...&school=U&degree=BS&...` with a custom vendor media-type Accept header (`application/vnd.net.hedtech.degreeworks.dashboard.audit.v1+json`). What-If was captured live on 2026-04-14 via the Network tab while the user swapped Neuroscience → Psychology. Surprise: the request is a `POST` to *the same path* (`/api/audit`, no query string) with plain `application/json` Accept — no vendor media type — and a JSON body:
+Discovery: the regular audit is `GET /api/audit?studentId=...&school=U&degree=BS&...` with a custom vendor media-type Accept header (`application/vnd.net.hedtech.degreeworks.dashboard.audit.v1+json`). What-If was captured live on 2026-04-14 via the Network tab by swapping Neuroscience → Psychology in the DegreeWorks UI. Surprise: the request is a `POST` to *the same path* (`/api/audit`, no query string) with plain `application/json` Accept — no vendor media type — and a JSON body:
 
 ```json
 {
@@ -63,7 +63,7 @@ Rejected because Look-Ahead is ~0 incremental code once What-If exists — popul
 
 **Closes another Known-Unknown** from the API reference (What-If endpoint shape). Look-Ahead remains listed but is downgraded from "unknown endpoint" to "unknown body shape, strongly inferred" — a much smaller risk.
 
-**Accepts that Look-Ahead has been inferred, not live-captured.** Mitigation is a single test on Day 2 of the sprint: `fetchWhatIfAudit(studentId, [], { classes: [{discipline: "CISC", number: "4090"}], isKeepCurriculum: true })`. Expected outcome: same response shape with the hypothetical course applied to a rule. If the server rejects the body, the error message identifies the missing field and we fix in minutes.
+**Accepts that Look-Ahead has been inferred, not live-captured.** Mitigation is a single verification test: `fetchWhatIfAudit(studentId, [], { classes: [{discipline: "CISC", number: "4090"}], isKeepCurriculum: true })`. Expected outcome: same response shape with the hypothetical course applied to a rule. If the server rejects the body, the error message identifies the missing field and we fix in minutes.
 
 **Two different Accept headers for the same path.** The GET uses `application/vnd.net.hedtech.degreeworks.dashboard.audit.v1+json`; the POST uses plain `application/json`. This is an Ellucian quirk documented in the reference — any developer building the client must remember it or the GET silently fails.
 

@@ -80,7 +80,7 @@ Use Anthropic's shipped memory primitives (`view`, `create`, `str_replace`, etc.
 
 **Aligns with Claude's training**: tool use is a first-class capability in Anthropic's models. `recall_memory` as a tool is a natural fit for Sonnet's reasoning loop, reusing the exact same infrastructure as `search_catalog` and `list_attributes`.
 
-**Matches published research architectures**: MemGPT's paging mechanism is the canonical example; this ADR's routing table is essentially MemGPT-style paging without the full OS-like memory hierarchy. Independent research validation for a choice the user proposed from first principles.
+**Matches published research architectures**: MemGPT's paging mechanism is the canonical example; this ADR's routing table is essentially MemGPT-style paging without the full OS-like memory hierarchy. Independent research validation for a choice we arrived at from first principles.
 
 **One new dependency per turn**: the memory index must be rendered into system-prompt text on every `handleAIChat` call. `memoriesToIndexText()` is O(memories) and runs in <1ms for 50 entries. Negligible overhead.
 

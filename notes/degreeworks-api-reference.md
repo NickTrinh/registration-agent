@@ -670,7 +670,7 @@ string (`"Complete" | "Block" | "Blocktype" | "Course" | "Group"`). The numeric
 #### Symbolic qualifier names (Ellucian Scribe keyword reference)
 
 These are the qualifier names the Scribe rule language emits into the runtime
-audit. Confirmed ones have live examples from Patch's Fordham audit; expected
+audit. Confirmed ones have live examples from captured Fordham audits; expected
 ones are documented by Ellucian's Scribe language but not yet observed in a
 Fordham response — still safe to switch on, just mark the branch as `TODO:
 verify shape`.

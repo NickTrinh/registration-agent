@@ -49,7 +49,7 @@ Rely entirely on the two-tier curator (ADR 0013) to build the memory store organ
 
 ## Revisited — 2026-04-18
 
-Live testing with Patch's first full walk-through surfaced three structural defects in the original design:
+Live end-to-end testing surfaced three structural defects in the original design:
 
 1. **Per-turn duplicate saves.** Sonnet re-extracted the same facts across multiple turns (e.g. "interest: philosophy of mind" saved on turn 2, then again on turn 4 with a slightly different phrasing). The curator prompt said "one memory per topic" but nothing enforced it — Jaccard dedup in `addMemory` was running but the model reframed topics enough to slip past the 0.6 threshold. Settings showed 6-8 memories after a 5-exchange intake where 4 were actually distinct.
 2. **Post-tool-result echo bug.** When `save_memory` fired mid-turn, Sonnet's continuation after the tool result sometimes re-emitted the same wrap-up text into the same bubble, producing a double-paragraph render. The tool round-trip inside the assistant turn created an opportunity for the model to "recover" by repeating itself.

@@ -1,7 +1,7 @@
 # 0008 — Banner session-bind dance + term-wide pagination (not per-subject filters)
 
 - **Status**: Accepted
-- **Date**: 2026-04-14 (codified from earlier sprint learning)
+- **Date**: 2026-04-14 (codified from earlier investigation)
 - **Related**: runs under 0003 (service-worker ownership)
 
 ## Context
@@ -51,7 +51,7 @@ Quadratic cost (bind + bind + bind + search + search + search) for no benefit ov
 
 ## Consequences
 
-**A single term refresh pulls ~2000 sections in roughly 10 seconds** at 500 rows per page × 4 pages + inter-page delays. Observed on Patch's catalog refresh for Fall 2026.
+**A single term refresh pulls ~2000 sections in roughly 10 seconds** at 500 rows per page × 4 pages + inter-page delays. Observed on the Fall 2026 catalog refresh.
 
 **Catalog refresh is idempotent.** Calling twice in a row overwrites the same IndexedDB rows; no duplicate-key issues and no cleanup logic needed.
 
