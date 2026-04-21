@@ -775,6 +775,13 @@ export default function AuditChat() {
             </div>
           );
         })()}
+        {loading && (
+          <div className="flex items-center gap-1 px-3 py-1" aria-label="Generating" aria-live="polite">
+            <span className="w-1.5 h-1.5 rounded-full bg-fordham-maroon animate-bounce [animation-delay:0ms]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-fordham-maroon animate-bounce [animation-delay:150ms]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-fordham-maroon animate-bounce [animation-delay:300ms]" />
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
       </div>
