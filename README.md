@@ -33,36 +33,44 @@ For a guided tour of the feature set (onboarding, course search, what-if audits,
 
 ## Architecture
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                      CHROME EXTENSION (MV3)                         │
-│                                                                     │
-│  ┌──────────────┐      ┌─────────────────────────┐                  │
-│  │ Content      │      │  Service Worker         │                  │
-│  │ Script       │──────▶  (single owner of all   │                  │
-│  │              │      │   third-party fetches)  │                  │
-│  │ Detects      │      │                         │                  │
-│  │ DegreeWorks  │      │  ┌───────────────────┐  │                  │
-│  │ tab → ping   │      │  │ Agent / clients   │  │                  │
-│  │ worker       │      │  │                   │  │                  │
-│  └──────────────┘      │  │ degreeworks-      │──┼──▶ DegreeWorks   │
-│                        │  │   api-client      │  │   JSON API       │
-│  ┌──────────────┐      │  │                   │  │                  │
-│  │ Side Panel   │◀────▶│  │ banner-ssb-client │──┼──▶ Banner SSB    │
-│  │ (React SPA)  │      │  │                   │  │   Class Search   │
-│  │              │      │  │ memory-store      │  │                  │
-│  │ - Chat       │      │  │ memory-curator ───┼──┼──▶ Anthropic     │
-│  │ - Settings   │      │  │                   │  │   (Haiku + Sonnet)│
-│  │ - Advisor    │      │  │ catalog-search    │  │                  │
-│  └──────────────┘      │  └───────────────────┘  │                  │
-│                        └─────────────────────────┘                  │
-│                                                                     │
-│  ┌──────────────────────┐   ┌──────────────────────────────┐        │
-│  │ chrome.storage.local │   │ IndexedDB (via idb)          │        │
-│  │  API key, audit,     │   │  Banner course catalog       │        │
-│  │  profile, memories   │   │                              │        │
-│  └──────────────────────┘   └──────────────────────────────┘        │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph external["External services"]
+        DW["DegreeWorks<br/>JSON API"]
+        BN["Banner SSB<br/>Class Search"]
+        AN["Anthropic API<br/>Claude Sonnet + Haiku"]
+    end
+
+    subgraph extension["Chrome Extension · Manifest V3"]
+        CS["Content Script<br/>Detects DegreeWorks tab · pings worker"]
+
+        subgraph sw["Service Worker · single owner of all third-party fetches"]
+            SW_API["degreeworks-api-client"]
+            SW_BN["banner-ssb-client"]
+            SW_MEM["memory-store + memory-curator"]
+            SW_CAT["catalog-search"]
+        end
+
+        SP["Side Panel · React SPA<br/>Chat · Settings · Advisor"]
+
+        subgraph storage["Storage"]
+            direction LR
+            ST1["chrome.storage.local<br/>API key · audit · profile · memories"]
+            ST2["IndexedDB<br/>course catalog"]
+        end
+    end
+
+    CS -->|messages| sw
+    SP <-->|"messages + events"| sw
+    sw --> ST1
+    sw --> ST2
+
+    SW_API --> DW
+    SW_BN --> BN
+    SW_MEM --> AN
+
+    classDef ext fill:#f7f3ee,stroke:#7a0019,color:#7a0019,stroke-width:2px
+    class DW,BN,AN ext
 ```
 
 Four design properties the codebase holds to, each backed by an ADR:
