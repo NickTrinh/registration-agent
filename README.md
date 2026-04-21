@@ -161,4 +161,4 @@ Every source file that implements an ADR carries a `// Implements: ADR NNNN` hea
 
 ## License
 
-TBD.
+MIT — see [LICENSE](LICENSE).

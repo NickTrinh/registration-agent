@@ -2,6 +2,7 @@
   "name": "fordham-registration-helper",
   "version": "1.0.0",
   "description": "AI-powered Chrome extension for Fordham course registration",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

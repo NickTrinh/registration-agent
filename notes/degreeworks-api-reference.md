@@ -95,8 +95,8 @@ interface UsersMyself {
   userId: string;            // same as `id`
   userClass: "STU" | string; // STU = student
   keys: string[];            // === the JWT `roles` array, duplicated
-  lastName: string;          // "Shields"
-  firstName: string;         // " Patch J." — ⚠️ note leading space (Banner artifact)
+  lastName: string;          // "LastName"
+  firstName: string;         // " FirstName M." — ⚠️ note leading space (Banner artifact)
   username: string | null;   // always null here — auth is cookie-based
   password: string | null;   // always null
   email: string | null;      // null on this endpoint (email lives in auditHeader)
