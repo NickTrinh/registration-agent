@@ -74,23 +74,6 @@ async function getJSON<T>(path: string, accept = "application/json"): Promise<T>
   return res.json() as Promise<T>;
 }
 
-async function postJSON<T>(path: string, body: unknown, accept = "application/json"): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      Accept: accept,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    if (isAuthStatus(res.status)) throw new DegreeWorksAuthError(path, res.status);
-    throw new Error(`DegreeWorks POST ${path} → ${res.status} ${res.statusText}`);
-  }
-  return res.json() as Promise<T>;
-}
-
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 // Bootstrap: the student's id + active term + active goals (school, degree,
