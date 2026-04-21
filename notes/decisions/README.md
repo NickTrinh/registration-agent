@@ -130,6 +130,7 @@ Living table of ADRs in this project. Add a row when you commit a new ADR. Sort 
 | [0014](./0014-onboarding-intake-mode.md) | Onboarding intake mode with `save_memory` tool · Revisited 2026-04-18 | Accepted | 2026-04-15 |
 | [0015](./0015-memory-source-attribution.md) | Memory source attribution (verbatim "you said: ..." quotes) | Accepted | 2026-04-17 |
 | [0016](./0016-cors-carveout-for-whatif-proxy.md) | CORS carveout: proxy What-If POST through the DegreeWorks tab · Amends 0003 | Accepted | 2026-04-19 |
+| [0017](./0017-retrospective.md) | Retrospective — what we'd keep, what we'd rebuild, what surprised us | Accepted | 2026-04-21 |
 
 ---
 

@@ -145,6 +145,7 @@ Every shaping decision captured in the project. Read them in numerical order for
 | [0014](notes/decisions/0014-onboarding-intake-mode.md) | Onboarding intake mode with `save_memory` tool · **Revisited 2026-04-18** | Conversational intake on first launch solves the cold-start memory problem. |
 | [0015](notes/decisions/0015-memory-source-attribution.md) | Memory source attribution (verbatim "you said: ..." quotes) | Every memory carries a verbatim snippet of the student's message that justified the save — visible in Settings. |
 | [0016](notes/decisions/0016-cors-carveout-for-whatif-proxy.md) | CORS carveout: proxy What-If POST through the DegreeWorks tab | Amends ADR 0003 — DegreeWorks rejects POST from `chrome-extension://` origins, so the What-If call runs from the DW tab via `chrome.scripting.executeScript`. |
+| [0017](notes/decisions/0017-retrospective.md) | Retrospective — what we'd keep, what we'd rebuild, what surprised us | Looks back across the sixteen preceding ADRs. A design-taste document, not a new decision. |
 
 The [ADR convention doc](notes/decisions/README.md) explains how these are structured and what we consider worth capturing.
 
