@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.env
+*.local
+
+# Local-only artifacts — not for the public repo.
+# Screenshots may contain PII (Banner IDs, student/advisor names, live JWTs).
+# They were inputs for the submission deck, not something judges need to see
+# in the repo itself.
+notes/screenshots/
+
+# Real-data fixtures (captured audit responses etc.) — contain PII by design.
+# See README "Rules of the road" — never commit these.
+notes/fixtures/*.real.*
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Editor / IDE scratch
+*.swp
+*~

@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Fordham Registration Helper",
+  "version": "1.0.0",
+  "description": "AI-powered assistant for Fordham course registration and degree planning",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://dw-prod.ec.fordham.edu/*",
+    "https://reg-prod.ec.fordham.edu/*",
+    "https://api.anthropic.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://dw-prod.ec.fordham.edu/*"],
+      "js": ["src/content/degreeworks-content.ts"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://dw-prod.ec.fordham.edu/*"],
+      "js": ["src/content/sidebar-mount.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Open Fordham Registration Helper"
+  },
+  "side_panel": {
+    "default_path": "src/sidebar/index.html"
+  },
+  "icons": {
+    "16": "public/icons/icon16.png",
+    "48": "public/icons/icon48.png",
+    "128": "public/icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*", "dw-interceptor.js"],
+      "matches": ["https://dw-prod.ec.fordham.edu/*"]
+    }
+  ]
+}
