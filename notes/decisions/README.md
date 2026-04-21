@@ -1,116 +1,31 @@
-# Decision Records — Convention
+# Architecture Decision Records
 
-This directory holds **ADRs** (Architecture Decision Records) for the registration-helper project. An ADR captures the *why* behind a shaping decision — what was on the table, what was rejected, what we locked in.
+This directory holds the **ADRs** (Architecture Decision Records) for the project. Each ADR captures the reasoning behind one shaping decision — what forced the choice, what we picked, what we rejected, and what that locks in. They're the single clearest way to understand *why* this codebase looks the way it does.
 
-ADRs are the evergreen layer. They sit alongside two other documentation layers:
+## Why we use them
 
-| Layer | Where | What it captures | Lifetime |
-|-------|-------|------------------|----------|
-| Commits | `git log` | What changed, line-level | Forever, but rarely re-read |
-| Journals | Internal team notes (not shipped with this repo) | Day-by-day narrative — insights, dead ends, pivots | Project-scoped |
-| **ADRs** | **this folder** | **Shaping decisions — what / why / alternatives** | **Project lifetime** |
+A Chrome extension that proxies a live DegreeWorks audit to Claude accumulates a lot of decisions that aren't obvious from the code alone:
 
-Judges, new teammates, and future Claude sessions read the ADRs first. Journals are the messy process that feeds into ADRs once a decision crystallizes.
+- **External constraints aren't visible in the diff.** The service-worker-owns-all-fetches pattern (ADR 0003) looks like an architectural preference, but it's actually forced by how Chrome MV3 handles service worker lifetimes and by DegreeWorks' CORS allowlist (ADR 0016). A reader skimming the code would not know which choices were taste and which were non-negotiable.
+- **The interesting part is the alternatives we rejected.** Every ADR lists at least two paths we considered and didn't take, with specific reasons. A reader asking "why didn't you just…?" gets the answer in the document, not from digging through commit history or asking the original author.
+- **Some decisions got revised.** ADRs 0013 and 0014 each have "Revisited" sections documenting refactors we shipped after live testing surfaced problems with the original design. ADRs 0003 and 0011 were amended or extended by later ADRs. Keeping the old decision readable alongside its revision is more honest than silently rewriting the record.
+- **Documentation that cites the code and gets cited by it.** Every source file that implements an ADR carries a `// Implements: ADR NNNN` header. Running `grep -rn "Implements: ADR 0013" src/` gives the full map of where the two-tier curator lives in code. Decisions and implementation point at each other, with no drift.
 
----
+## How to read them
 
-## When to write an ADR
+Each ADR follows a consistent structure. The sections are:
 
-Write one when:
+- **Context** — the problem, what forced a decision, which external constraints were in play.
+- **Decision** — the chosen path, stated plainly.
+- **Alternatives considered** — usually three or four. This is the most load-bearing section; skip it and you miss the reasoning.
+- **Consequences** — what the decision locks in, what it opens up, what risk it accepts.
+- **Revisit if** / **Revisited — YYYY-MM-DD** / **References** — optional sections for follow-up triggers, after-the-fact revisions, and external links.
 
-- A decision shapes multiple files or multiple sessions downstream
-- You rejected a plausible alternative (the rejection is the interesting part — it's what a judge or future teammate would ask about)
-- A constraint came from outside the code (policy, deadline, data availability, an incident, a failed earlier approach)
-- You'd want to explain the choice at a whiteboard
+Status lines at the top tell you whether an ADR is still authoritative on its own or whether a later record modifies it. For example, `Accepted · Amended by ADR 0016 for POST endpoints` means ADR 0016 carves out a scope narrower than the original claim.
 
-Don't write one for:
-
-- Routine implementation (naming, file layout, minor refactors)
-- Choices that reverse cheaply
-- Anything a `git log` entry with a good commit body already captures
-
-**Aim for roughly 5–10 ADRs per phase of work.** If you're writing 20, the bar is too low and the signal-to-noise tanks. If you're writing 2, you're probably missing shaping decisions worth capturing.
-
----
-
-## How to write one
-
-1. **Pick the next unused number.** Look at the highest `NNNN-*.md` file in this directory and add one. Numbers are sequential, permanent, and never reused — once an ADR is committed its number is the handle everyone refers to.
-2. **Clone [`TEMPLATE.md`](./TEMPLATE.md)** to `NNNN-kebab-case-title.md`.
-3. **Fill in the sections.** The template has inline guidance in HTML comments; they're fine to delete as you write.
-4. **Add the row to the Index table below.**
-5. **Commit with a body that references the ADR.** E.g. `feat: wire recall_memory tool (implements ADR 0003)`.
-
-### Naming
-
-- `NNNN-kebab-case-title.md` — four-digit zero-padded number, short noun phrase title
-- Good: `0003-routing-table-memory-index.md`
-- Bad: `memory.md`, `decision-about-the-curator.md`
-
-### Format
-
-Every ADR has these sections (see `TEMPLATE.md` for the scaffold):
-
-1. **Header** — number, title, status, date, related ADRs
-2. **Context** — what was the problem, what forced a decision now. 1–3 paragraphs.
-3. **Decision** — what we chose, plainly stated. Usually the shortest section.
-4. **Alternatives considered** — what was rejected and why. **The most valuable section** — at least 2 alternatives. If there was only one path, this isn't ADR-worthy.
-5. **Consequences** — what this locks in, what it opens up, what risks it accepts.
-
-Optional: **Revisit if...** (explicit triggers to reconsider), **References** (PRs, papers, related ADRs, external docs).
-
-### Voice
-
-- First-person plural ("we decided") is fine. Passive voice is not.
-- Be specific about what was on the table. *"We considered MemGPT-style paging but rejected per-turn recall because..."* beats *"we looked at other approaches."*
-- Keep it tight — about one page (~400–600 words). If an ADR sprawls past two pages, it's probably two decisions fused; split them.
-- Don't hedge retroactively. If the decision turned out wrong, supersede the ADR with a new one rather than softening the old one.
-
-### Status values
-
-- **Proposed** — drafted but not yet implemented
-- **Accepted** — implemented and in effect (the common case when ADRs are written alongside the work)
-- **Superseded by NNNN** — replaced by a later ADR (include forward link)
-- **Deprecated** — no longer relevant but kept for historical context
-
-Most ADRs in this project are **Accepted** from the moment they're written because we write them alongside implementation, not before.
-
----
-
-## Commit convention (paired with ADRs)
-
-```
-<type>: <subject, ≤60 chars>
-
-<body, 1–3 sentences explaining WHY — what forced the change,
-what was considered and rejected. Wrap at 72.>
-
-<optional: implements ADR NNNN>
-```
-
-Types: `feat`, `fix`, `refactor`, `docs`, `chore`.
-
-The body is required when the subject doesn't obviously explain the motivation. `chore: bump deps` doesn't need a body; `refactor: collapse toolEvents onto ConversationMessage` does.
-
-When a commit implements (or partially implements) an ADR, cite it: `implements ADR 0003` or `partial: ADR 0003`. This gives `git log --grep` a reverse index from ADR number → commits.
-
----
-
-## Cross-session workflow
-
-This project runs across multiple Claude sessions. The convention is designed so both a fresh session and a returning session can orient themselves from the ADRs alone:
-
-- **Fresh session** (no context from prior work) — read this README, then read every `NNNN-*.md` in order. The ADRs should reconstruct the architectural reasoning without needing chat history.
-- **Returning session** (picking up where a prior session left off) — skim new ADRs since your last session; each one is a "catch me up" document for a specific decision.
-- **Writing retroactively** — when a session realizes it made a shaping decision without documenting it, write the ADR before moving on. "Write it now or lose it" — the alternatives-considered section is always easiest to fill in while the rejection reasoning is still fresh.
-
-If two sessions write ADRs in parallel and collide on a number, resolve by bumping the later one and updating its Index row. Numbers are cheap; the index table is the source of truth for assignment.
-
----
+For a narrative pass through the whole decision arc, read them in numerical order. For a quicker read, the one-liners in the Index below will tell you which ADR to dig into for a specific topic.
 
 ## Index
-
-Living table of ADRs in this project. Add a row when you commit a new ADR. Sort by number ascending.
 
 | # | Title | Status | Date |
 |---|-------|--------|------|
@@ -131,12 +46,3 @@ Living table of ADRs in this project. Add a row when you commit a new ADR. Sort 
 | [0015](./0015-memory-source-attribution.md) | Memory source attribution (verbatim "you said: ..." quotes) | Accepted | 2026-04-17 |
 | [0016](./0016-cors-carveout-for-whatif-proxy.md) | CORS carveout: proxy What-If POST through the DegreeWorks tab · Amends 0003 | Accepted | 2026-04-19 |
 | [0017](./0017-retrospective.md) | Retrospective — what we'd keep, what we'd rebuild, what surprised us | Accepted | 2026-04-21 |
-
----
-
-## Planned ADRs
-
-Topics identified as ADR-worthy but not yet written. Numbers are assigned at write-time (next unused from the Index above), not pinned here. **Claim one by writing it** — delete its line from this list and add the corresponding row to the Index above.
-
-- [ ] Single-writer service-worker pattern for all `chrome.storage.local` mutations (extends 0003)
-- [ ] *(add more as you spot them — the `Planned` list is append-only until claimed)*
