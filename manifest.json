@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Fordham Registration Helper",
+  "name": "Fordham Registration Agent",
   "version": "1.0.0",
   "description": "AI-powered assistant for Fordham course registration and degree planning",
   "permissions": [
@@ -31,7 +31,7 @@
     }
   ],
   "action": {
-    "default_title": "Open Fordham Registration Helper"
+    "default_title": "Open Fordham Registration Agent"
   },
   "side_panel": {
     "default_path": "src/sidebar/index.html"

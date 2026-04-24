@@ -49,7 +49,7 @@ export default function App() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-fordham-maroon text-white shadow-sm shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold">🎓 Fordham Helper</span>
+          <span className="text-lg font-bold">🎓 Fordham Agent</span>
         </div>
         <nav className="flex gap-1">
           <NavButton active={page === "chat"} onClick={() => setPage("chat")}>

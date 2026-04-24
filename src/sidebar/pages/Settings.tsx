@@ -666,7 +666,7 @@ export default function Settings() {
       <div>
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">About</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-          Fordham Registration Helper reads your DegreeWorks audit and uses Claude AI (Sonnet for chat, Haiku for profile extraction) to help you plan your courses. All data is stored locally in your browser.
+          Fordham Registration Agent reads your DegreeWorks audit and uses Claude AI (Sonnet for chat, Haiku for profile extraction) to help you plan your courses. All data is stored locally in your browser.
         </p>
       </div>
 
