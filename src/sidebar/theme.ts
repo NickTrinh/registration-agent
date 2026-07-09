@@ -1,3 +1,4 @@
+// Implements: ADR 0025 (dark mode is a token split, not an inversion)
 // Theme preference: 3-state toggle (light / dark / system).
 //
 // - "light" / "dark" — explicit override; ignores OS setting
@@ -23,6 +24,19 @@ export function resolveDark(pref: ThemePreference): boolean {
 export function applyTheme(pref: ThemePreference): void {
   const dark = resolveDark(pref);
   document.documentElement.classList.toggle("dark", dark);
+  // Tailwind's `dark` class cannot reach native controls. `color-scheme` is
+  // what themes the chat input, both textareas, the term <select> AND its
+  // popup, and the scrollbars. Without this line they render light chrome in
+  // dark mode no matter which class sits on <html>.
+  document.documentElement.style.colorScheme = dark ? "dark" : "light";
+}
+
+// Whether the student has asked the OS to reduce motion. CSS handles the
+// declarative cases (see styles.css); this is for the imperative ones —
+// scrollIntoView takes `behavior` as a JS argument, so no stylesheet can
+// override it.
+export function prefersReducedMotion(): boolean {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 }
 
 // Keep the DOM `dark` class in sync with OS dark-mode changes — but only

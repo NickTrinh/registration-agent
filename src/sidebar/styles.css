@@ -1,6 +1,17 @@
+/* Implements: ADR 0025 (dark mode is a token split, not an inversion) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Declared before any JS runs. main.tsx gates React's first render on the
+   stored preference, but the browser paints a frame before chrome.storage
+   resolves — with `color-scheme` set here that frame follows the OS instead
+   of flashing white. applyTheme() then narrows this to a single value.
+   It is also what themes the native controls Tailwind cannot reach: the
+   chat input, the term <select> and its popup, textareas, scrollbars. */
+:root {
+  color-scheme: light dark;
+}
 
 * {
   box-sizing: border-box;
@@ -9,6 +20,41 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
-  background: #fff;
-  color: #111827;
+  /* System colors, not literals — they follow `color-scheme` on the frame
+     painted before the stored preference loads. */
+  background: Canvas;
+  color: CanvasText;
+}
+
+@layer components {
+  /* Maroon is an 11.75:1 ink on white and a 1.51:1 ink on gray-900, so the
+     ring has to swap with the theme. Gold is 2.29:1 on white — it is only ever
+     a ring on the maroon header, where it reaches 5.12:1. */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-fordham-maroon focus-visible:ring-offset-1
+           focus-visible:ring-offset-white
+           dark:focus-visible:ring-fordham-maroon-ink
+           dark:focus-visible:ring-offset-gray-900;
+  }
+
+  .focus-ring-on-maroon {
+    @apply focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-fordham-gold;
+  }
+}
+
+/* Motion marks a state transition; it never decorates. A student who asked the
+   OS to stop moving things gets a still panel — including the chat's smooth
+   scroll, which passes `behavior` from JS and so needs a matching matchMedia
+   read at the call site as well as this override. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
