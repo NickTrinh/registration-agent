@@ -120,6 +120,7 @@ Every shaping decision is captured as an ADR under [`notes/decisions/`](notes/de
 | [0028](notes/decisions/0028-only-conversational-turns-enter-the-prompt-path.md) | Only conversational turns enter the prompt path · Revisited (`uiOnly` deleted) |
 | [0029](notes/decisions/0029-an-expired-banner-session-is-a-typed-error.md) | An expired Banner session is a typed error, not a SyntaxError |
 | [0030](notes/decisions/0030-exactly-one-terminal-event-from-the-turn-that-owns-the-spinner.md) | Exactly one terminal event, from the turn that owns the spinner |
+| [0031](notes/decisions/0031-native-app-surface-grammar.md) | The native-app surface grammar (chrome, settings, composer, motion) · Amends 0025 |
 
 See [`notes/decisions/README.md`](notes/decisions/README.md) for why the project uses ADRs and how to read them.
 
@@ -156,7 +157,7 @@ registration-agent/
 ├── notes/
 │   ├── TESTING.md                        # demo walkthrough
 │   ├── fixtures/                         # anonymized API captures for the offline test loop
-│   └── decisions/                        # 30 ADRs — the reasoning behind every shaping decision
+│   └── decisions/                        # 31 ADRs — the reasoning behind every shaping decision
 └── src/
     ├── background/                       # service worker (orchestrator + API clients + memory + curator)
     ├── content/                          # content script (~10 lines, pings the worker on DW load)

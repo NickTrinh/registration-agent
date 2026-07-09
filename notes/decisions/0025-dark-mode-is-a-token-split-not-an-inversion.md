@@ -1,6 +1,6 @@
 # 0025 — Dark mode is a token split, not an inversion
 
-- **Status**: Accepted
+- **Status**: Accepted · Amended by ADR 0031 — the solid maroon header (and with it `maroon.deep` and `gold`) was retired for translucent app chrome; the token-split principle itself is unchanged
 - **Date**: 2026-07-09
 - **Related**: informs 0026; native-control theming complements 0029's recovery UI
 
