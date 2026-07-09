@@ -46,3 +46,7 @@ For a narrative pass through the whole decision arc, read them in numerical orde
 | [0015](./0015-memory-source-attribution.md) | Memory source attribution (verbatim "you said: ..." quotes) | Accepted | 2026-04-17 |
 | [0016](./0016-cors-carveout-for-whatif-proxy.md) | CORS carveout: proxy What-If POST through the DegreeWorks tab · Amends 0003 | Accepted | 2026-04-19 |
 | [0017](./0017-retrospective.md) | Retrospective — what we'd keep, what we'd rebuild, what surprised us | Accepted | 2026-04-21 |
+| [0018](./0018-anonymized-fixtures-offline-test-loop.md) | Committed anonymized fixtures + offline test loop (PII boundary machine-checked) | Accepted | 2026-07-07 |
+| [0019](./0019-tool-registry-agent-layer-decomposition.md) | Tool registry + agent-layer decomposition · Amends 0003 | Accepted | 2026-07-07 |
+| [0020](./0020-split-cache-breakpoints-volatile-last.md) | Split cache breakpoints; volatile context after the last breakpoint · Amends 0010 | Accepted | 2026-07-08 |
+| [0021](./0021-mv3-keepalive-and-failure-surfacing.md) | MV3 keepalive for post-stream work + tool-cap/truncation surfacing | Accepted | 2026-07-08 |

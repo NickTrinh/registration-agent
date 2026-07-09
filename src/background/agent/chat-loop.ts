@@ -3,7 +3,7 @@
 // service-worker.ts; the worker-owned capabilities it needs (broadcast, the
 // refresh flow, student-cache accessors, curator buffer) are injected as
 // `deps` so this module never imports the service worker.
-// Implements: ADR 0019 — see notes/decisions/.
+// Implements: ADR 0019, ADR 0021 — see notes/decisions/.
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { ConversationMessage } from "../../shared/types";
@@ -16,6 +16,7 @@ import { runCurator, type ConversationTurn } from "./memory-curator";
 import { buildAdvisorSystemBlocks, buildOnboardingSystemBlocks } from "./prompts";
 import { TOOLSETS, REGISTRY } from "./tools";
 import type { ChatMode, StudentGoal, ToolContext } from "./tools/types";
+import { withKeepalive } from "../keepalive";
 
 // Worker-owned capabilities the chat loop reaches for. Injected (not imported)
 // to keep this module free of a service-worker dependency cycle.
@@ -105,8 +106,8 @@ export async function handleAIChat(
     for (let round = 0; round < 5; round++) {
       const stream = await client.messages.stream(
         {
-          model: "claude-sonnet-4-6",
-          max_tokens: 2048,
+          model: "claude-sonnet-5",
+          max_tokens: 4096,
           system,
           tools: TOOLSETS[mode].map((t) => t.schema),
           messages: convo,
@@ -180,6 +181,23 @@ export async function handleAIChat(
       convo.push({ role: "user", content: toolResults });
     }
 
+    // Surface loop-exit conditions the student would otherwise not see. These
+    // deltas append to the streamed text before AI_DONE closes the turn.
+    if (finalMessage?.stop_reason === "tool_use") {
+      // The loop exited while Claude was STILL asking for tools — it ran out of
+      // the 5 rounds above (the per-turn cap), not because it was done.
+      deps.broadcast({
+        type: "AI_CHUNK",
+        delta:
+          "\n\n*(I hit my per-turn tool limit — ask me to continue and I'll pick up where I left off.)",
+      });
+    } else if (finalMessage?.stop_reason === "max_tokens") {
+      deps.broadcast({
+        type: "AI_CHUNK",
+        delta: '\n\n*(Response was cut short — say "continue" for the rest.)',
+      });
+    }
+
     deps.broadcast({ type: "AI_DONE" });
 
     // Fire-and-forget memory curation. Haiku scans the just-completed turn
@@ -202,7 +220,11 @@ export async function handleAIChat(
     if (mode === "normal" && lastUser?.role === "user" && finalText) {
       const autoSaveOn = await deps.isCuratorAutoSaveEnabled();
       if (autoSaveOn) {
-        deps.appendCuratorTurn({ user: lastUser.content, assistant: finalText })
+        // Keepalive: this whole chain runs AFTER AI_DONE, so no UI event is
+        // queued to keep the MV3 worker awake. Without it, Chrome's ~30s idle
+        // kill can land mid-Haiku-call and silently drop the memory save.
+        withKeepalive(
+          deps.appendCuratorTurn({ user: lastUser.content, assistant: finalText })
           .then(async (window) => {
             const result = await runCurator(apiKey, window, { write: true });
             // Emit a toast-friendly broadcast for each hard-fact save or
@@ -233,7 +255,7 @@ export async function handleAIChat(
               deps.broadcast({ type: "PROVISIONAL_UPDATED", provisional });
             }
           })
-          .catch((err) => console.warn("[Curator] unhandled error:", err));
+        ).catch((err) => console.warn("[Curator] unhandled error:", err));
       } else {
         console.log("[Curator] Skipped — auto-save toggle is OFF.");
       }

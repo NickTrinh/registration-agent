@@ -5,6 +5,7 @@
 // are thin taps." Every fetch against DegreeWorks, Banner, and Anthropic
 // flows through handlers defined here, and all chrome.storage.local writes
 // are owned by the worker so in-memory caches stay coherent.
+// Implements: ADR 0021 (MV3 keepalive on extractProfile + refreshCatalog).
 //
 // The agent layer (chat loop, prompts, tool registry) lives under agent/;
 // this file owns the caches, refresh flows, and message router, and injects
@@ -37,6 +38,8 @@ import {
 import type { ConversationTurn } from "./agent/memory-curator";
 import { handleAIChat, cancelCurrentChat, type ChatDeps } from "./agent/chat-loop";
 import type { ChatMode, StudentGoal } from "./agent/tools/types";
+import { buildProfileExtractionPrompt } from "./agent/prompts";
+import { withKeepalive } from "./keepalive";
 
 // ─── Side Panel Setup ─────────────────────────────────────────────────────────
 
@@ -490,43 +493,19 @@ async function extractProfile(auditText: string): Promise<void> {
 
   // auditText arrives already PII-free from refreshAudit — the renderer emits
   // placeholder tokens instead of identifying fields, so Haiku never sees a
-  // real name or email. The template below also doesn't ask for Name/Advisor,
-  // so there's no prompt pressure to hallucinate identifying fields.
+  // real name or email. The extraction template (in prompts.ts) also doesn't
+  // ask for Name/Advisor, so there's no prompt pressure to hallucinate them.
   try {
-    const response = await client.messages.create({
+    // Keepalive: this runs on its own (post-refresh, no queued UI event), so
+    // the MV3 idle kill could land mid-call and drop the profile write.
+    const response = await withKeepalive(client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 300,
       messages: [{
         role: "user",
-        content:
-`Extract a compact student profile from this DegreeWorks audit.
-Output ONLY the profile block below — no extra text, no explanation.
-
-Field rules:
-- Major, Minor, Concentration are SEPARATE fields. Each maps to one of
-  the audit's \`MAJOR:\` / \`MINOR:\` / \`CONC:\` lines respectively. NEVER
-  put a concentration in the Minor slot or vice versa — the audit
-  distinguishes them and so must you.
-- If the student has MULTIPLE majors, minors, or concentrations, list
-  them comma-separated. A double-major, dual minors, or multiple
-  concentrations are valid and should all appear.
-- If a field has no value in the audit, write exactly: None
-
-Classification: [year] | Major: [major(s), comma-sep] | Minor: [minor(s) or None] | Concentration: [concentration(s) or None]
-GPA: [overall gpa] | Credits: [earned]/[required]
-Completed blocks: [comma-separated requirement blocks fully done]
-In progress: [courses currently being taken, format SUBJ 1234; or None]
-Still needed (top 5):
-- [most critical outstanding requirement]
-- [next most critical]
-- [next]
-- [next]
-- [next]
-
-=== AUDIT ===
-${auditText.substring(0, 10000)}`,
+        content: buildProfileExtractionPrompt(auditText),
       }],
-    });
+    }));
 
     const profile =
       response.content[0].type === "text" ? response.content[0].text.trim() : "";
@@ -557,9 +536,14 @@ async function refreshCatalog(term: string): Promise<void> {
   broadcast({ type: "CATALOG_PROGRESS", done: 0, total: 1, label: "starting" });
 
   try {
-    const rawSections = await fetchAllSectionsForTerm(term, (done, total, label) => {
-      broadcast({ type: "CATALOG_PROGRESS", done, total, label });
-    });
+    // Keepalive: the term-wide Banner fetch paginates for many seconds with no
+    // queued UI event behind it — the classic MV3 idle-kill window. Hold the
+    // worker awake until the fetch resolves.
+    const rawSections = await withKeepalive(
+      fetchAllSectionsForTerm(term, (done, total, label) => {
+        broadcast({ type: "CATALOG_PROGRESS", done, total, label });
+      })
+    );
 
     if (rawSections.length > 0) {
       const uniqueSubjects = new Set(rawSections.map((s) => s.subject));

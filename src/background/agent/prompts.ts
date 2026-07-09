@@ -69,6 +69,41 @@ After roughly 5-7 exchanges, OR when you feel you have a solid picture, OR when 
 
 Warm, curious, human. You are not a form — you are a new advisor trying to get to know a student. It should feel like a real conversation.`;
 
+// Profile-extraction prompt — a Haiku one-shot the worker runs after each audit
+// refresh to distill the audit into a compact student profile. Prompt text lives
+// here (with the other prompts) rather than inline in the worker; the worker owns
+// the call site + caching (ADR 0003). auditText arrives PII-free (ADR 0009); the
+// template deliberately never asks for Name/Advisor, so there's no pressure to
+// emit identifying fields.
+export function buildProfileExtractionPrompt(auditText: string): string {
+  return `Extract a compact student profile from this DegreeWorks audit.
+Output ONLY the profile block below — no extra text, no explanation.
+
+Field rules:
+- Major, Minor, Concentration are SEPARATE fields. Each maps to one of
+  the audit's \`MAJOR:\` / \`MINOR:\` / \`CONC:\` lines respectively. NEVER
+  put a concentration in the Minor slot or vice versa — the audit
+  distinguishes them and so must you.
+- If the student has MULTIPLE majors, minors, or concentrations, list
+  them comma-separated. A double-major, dual minors, or multiple
+  concentrations are valid and should all appear.
+- If a field has no value in the audit, write exactly: None
+
+Classification: [year] | Major: [major(s), comma-sep] | Minor: [minor(s) or None] | Concentration: [concentration(s) or None]
+GPA: [overall gpa] | Credits: [earned]/[required]
+Completed blocks: [comma-separated requirement blocks fully done]
+In progress: [courses currently being taken, format SUBJ 1234; or None]
+Still needed (top 5):
+- [most critical outstanding requirement]
+- [next most critical]
+- [next]
+- [next]
+- [next]
+
+=== AUDIT ===
+${auditText.substring(0, 10000)}`;
+}
+
 export interface AdvisorPromptInput {
   profile: string;
   memoryIndex: string;

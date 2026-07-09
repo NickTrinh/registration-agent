@@ -97,7 +97,7 @@ Every shaping decision is captured as an ADR under [`notes/decisions/`](notes/de
 | [0007](notes/decisions/0007-reverse-map-attribute-taxonomy-from-rule-tree.md) | Reverse-map ATTRIBUTE taxonomy from the audit rule tree |
 | [0008](notes/decisions/0008-banner-term-bind-and-term-wide-pagination.md) | Banner session-bind dance + term-wide pagination |
 | [0009](notes/decisions/0009-pii-boundary-at-renderer.md) | Safe-by-construction PII boundary at the audit-to-text renderer |
-| [0010](notes/decisions/0010-prompt-caching-at-system-breakpoint.md) | Prompt caching at the system-prompt breakpoint |
+| [0010](notes/decisions/0010-prompt-caching-at-system-breakpoint.md) | Prompt caching at the system-prompt breakpoint · Amended by 0020 |
 | [0011](notes/decisions/0011-background-extractor-memory-curator.md) | Background-extractor memory curator · Extended by 0013 |
 | [0012](notes/decisions/0012-routing-table-memory-index.md) | Routing-table memory index with `recall_memory` tool |
 | [0013](notes/decisions/0013-two-tier-memory-curator.md) | Two-tier memory curator · Revisited 2026-04-17 |
@@ -107,6 +107,8 @@ Every shaping decision is captured as an ADR under [`notes/decisions/`](notes/de
 | [0017](notes/decisions/0017-retrospective.md) | Retrospective — what we'd keep, rebuild, and what surprised us |
 | [0018](notes/decisions/0018-anonymized-fixtures-offline-test-loop.md) | Committed anonymized fixtures + offline test loop (PII boundary now machine-checked) |
 | [0019](notes/decisions/0019-tool-registry-agent-layer-decomposition.md) | Tool registry + agent-layer decomposition · Amends 0003 |
+| [0020](notes/decisions/0020-split-cache-breakpoints-volatile-last.md) | Split cache breakpoints; volatile context after the last breakpoint · Amends 0010 |
+| [0021](notes/decisions/0021-mv3-keepalive-and-failure-surfacing.md) | MV3 keepalive for post-stream work + tool-cap/truncation surfacing |
 
 See [`notes/decisions/README.md`](notes/decisions/README.md) for why the project uses ADRs and how to read them.
 
@@ -127,7 +129,7 @@ See [`notes/decisions/README.md`](notes/decisions/README.md) for why the project
 
 ## Tech stack
 
-**TypeScript** (strict) · **React 18** · **Tailwind CSS** · **Vite 5** with `@crxjs/vite-plugin` · **Chrome Extension MV3** (service worker, side panel, content script) · **`@anthropic-ai/sdk`** (Sonnet 4.6 for chat, Haiku 4.5 for the memory curator) · **IndexedDB** via `idb` for the catalog · **`chrome.storage.local`** for API key, audit, profile, and memories.
+**TypeScript** (strict) · **React 18** · **Tailwind CSS** · **Vite 5** with `@crxjs/vite-plugin` · **Chrome Extension MV3** (service worker, side panel, content script) · **`@anthropic-ai/sdk`** (Sonnet 5 for chat, Haiku 4.5 for the memory curator) · **IndexedDB** via `idb` for the catalog · **`chrome.storage.local`** for API key, audit, profile, and memories.
 
 **Live data sources:** Fordham DegreeWorks JSON API (`dw-prod.ec.fordham.edu/responsiveDashboard/api/*`) + Fordham Banner SSB Class Search (`reg-prod.ec.fordham.edu/StudentRegistrationSsb/ssb/*`).
 
@@ -143,7 +145,7 @@ registration-agent/
 ├── notes/
 │   ├── TESTING.md                        # demo walkthrough
 │   ├── degreeworks-api-reference.md      # reverse-engineered Ellucian DegreeWorks JSON API reference
-│   └── decisions/                        # 19 ADRs — the reasoning behind every shaping decision
+│   └── decisions/                        # 21 ADRs — the reasoning behind every shaping decision
 └── src/
     ├── background/                       # service worker (orchestrator + API clients + memory + curator)
     ├── content/                          # content script (~10 lines, pings the worker on DW load)
