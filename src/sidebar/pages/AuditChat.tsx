@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { conversationalOnly } from "../../shared/types";
 import type {
   ConversationMessage,
   ToolEvent,
@@ -305,10 +306,15 @@ export default function AuditChat() {
           }
           break;
         case "AI_ERROR":
+          // uiOnly: this bubble is OUR text, not the advisor's. Without the
+          // flag it persists in `messages` and gets replayed to Anthropic on
+          // every later turn — raw API error bodies entering the prompt path.
+          // Implements: ADR 0028.
           setMessages((prev) => [...prev, {
             role: "assistant",
             content: `Error: ${message.error}`,
             timestamp: new Date().toISOString(),
+            uiOnly: true,
           }]);
           setLoading(false);
           break;
@@ -365,6 +371,9 @@ export default function AuditChat() {
                   updatedEvents[j] = {
                     ...updatedEvents[j],
                     courseCount: message.courseCount,
+                    // Present only when the tool threw. Carried so the chip can
+                    // render a failed state instead of claiming "0 results".
+                    error: message.error,
                   };
                   const updatedMsg = { ...m, toolEvents: updatedEvents };
                   return [...prev.slice(0, i), updatedMsg, ...prev.slice(i + 1)];
@@ -573,10 +582,12 @@ export default function AuditChat() {
     // message and the incoming reply. Release any scroll-up lock so the
     // response auto-scrolls into view.
     scrollToBottomImmediately();
-    // systemAction bubbles are UI-only (e.g. the end-of-intake save list) —
-    // strip them before sending history to the model so they don't show up
-    // as empty assistant turns in the conversation context.
-    const forWorker = next.filter((m) => !m.systemAction);
+    // Only real conversational turns reach the model. systemAction bubbles
+    // (end-of-intake save list) and uiOnly bubbles (the "Error: ..." surface)
+    // are things the UI said, not things the advisor said or heard. One shared
+    // predicate owns this — see conversationalOnly() in shared/types.ts.
+    // Implements: ADR 0028.
+    const forWorker = conversationalOnly(next);
     chrome.runtime.sendMessage({
       type: "AI_CHAT",
       messages: forWorker,

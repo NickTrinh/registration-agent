@@ -55,6 +55,12 @@ export interface ToolEvent {
   // Filled in when the corresponding AI_TOOL_RESULT arrives. Undefined while
   // the tool call is still in flight so the chip can show a "searching…" state.
   courseCount?: number;
+  // Set when the tool THREW. The worker still emits a terminal AI_TOOL_RESULT
+  // (otherwise the chip spins forever), but with `courseCount: 0` — which is a
+  // chip-resolved marker, NOT a claim of zero results. Read `error` first: a
+  // failed search found nothing *because it failed*, and rendering "0 results"
+  // tells the student a lie. See ADR 0028.
+  error?: string;
 }
 
 export interface ConversationMessage {
@@ -71,6 +77,22 @@ export interface ConversationMessage {
   // creates a fresh bubble. Filtered out before the history is sent to
   // Anthropic — it represents a UI event, not a turn in the conversation.
   systemAction?: SystemAction;
+  // This message is a UI artifact, not a turn the model said or heard — e.g.
+  // the "Error: ..." bubble rendered when AI_ERROR arrives. It MUST NOT be
+  // replayed into the prompt: doing so feeds raw API error text back to the
+  // model as if the advisor had spoken it, on every subsequent turn, forever.
+  // Anything uiOnly is filtered by `conversationalOnly()` before send.
+  // See ADR 0028.
+  uiOnly?: boolean;
+}
+
+// The single gate between what the student SEES and what the model is TOLD.
+// Every path that ships history to the worker goes through this — do not
+// hand-roll the filter at a call site. Implements: ADR 0028.
+export function conversationalOnly(
+  messages: ConversationMessage[]
+): ConversationMessage[] {
+  return messages.filter((m) => !m.systemAction && !m.uiOnly);
 }
 
 export interface SystemActionItem {
