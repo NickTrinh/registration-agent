@@ -46,11 +46,16 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-900">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-fordham-maroon text-white shadow-sm shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-bold">🎓 Fordham Agent</span>
-        </div>
+      {/* The header is the brand anchor and the one element that does not move
+          between themes — it stays maroon, deepening to `maroon.deep` in dark
+          so it doesn't glow against a dark page (13.45:1 with white). */}
+      <header className="flex items-center justify-between px-4 py-2.5 bg-fordham-maroon dark:bg-fordham-maroon-deep text-white shadow-sm shrink-0">
+        {/* Tailwind's stock `font-serif` — no webfont, no dependency, on every
+            machine. It is the cheapest change that stops the panel reading as
+            a generic chat app. */}
+        <span className="font-serif text-[15px] font-semibold tracking-tight">
+          RamPlan
+        </span>
         <nav className="flex gap-1">
           <NavButton active={page === "chat"} onClick={() => setPage("chat")}>
             Advisor
@@ -91,13 +96,17 @@ function NavButton({
   active: boolean;
   onClick: () => void;
 }) {
+  // Gold appears exactly twice in the product: this 2px underline (5.12:1 on
+  // maroon) and the focus ring on header controls. It fails every contrast
+  // floor on white, so it never leaves this bar.
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+      aria-current={active ? "page" : undefined}
+      className={`focus-ring-on-maroon rounded-sm px-2 py-1 text-sm font-medium border-b-2 transition-colors ${
         active
-          ? "bg-white text-fordham-maroon dark:bg-gray-100"
-          : "text-white/80 hover:text-white hover:bg-white/10"
+          ? "border-fordham-gold text-white"
+          : "border-transparent text-white/70 hover:text-white"
       }`}
     >
       {children}

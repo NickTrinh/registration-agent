@@ -10,9 +10,8 @@ function mountBadge(): void {
   const badge = document.createElement("div");
   badge.id = BADGE_ID;
   badge.innerHTML = `
-    <span style="font-size:18px;line-height:1">🎓</span>
-    <span style="font-size:12px;font-weight:600;letter-spacing:0.01em">Helper</span>
-    <span style="font-size:10px;opacity:0.75;margin-top:1px">Click toolbar icon →</span>
+    <span style="font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:15px;font-weight:600;letter-spacing:-0.01em">RamPlan</span>
+    <span style="font-size:11px;opacity:0.8;margin-top:1px">Click toolbar icon →</span>
   `;
   Object.assign(badge.style, {
     position: "fixed",
@@ -36,8 +35,15 @@ function mountBadge(): void {
 
   document.body.appendChild(badge);
 
-  // Fade out after 5 seconds — it's just a hint
+  // Fade out after 5 seconds — it's just a hint. This badge lives on the host
+  // page, so the extension's own reduced-motion stylesheet can't reach it.
+  const reduceMotion =
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
   setTimeout(() => {
+    if (reduceMotion) {
+      badge.remove();
+      return;
+    }
     badge.style.transition = "opacity 0.5s ease";
     badge.style.opacity = "0";
     setTimeout(() => badge.remove(), 500);
