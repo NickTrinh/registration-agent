@@ -25,6 +25,8 @@ Status lines at the top tell you whether an ADR is still authoritative on its ow
 
 For a narrative pass through the whole decision arc, read them in numerical order. For a quicker read, the one-liners in the Index below will tell you which ADR to dig into for a specific topic.
 
+> **A note on `notes/degreeworks-api-reference.md`.** Several ADRs cite it. It's a working document — a reverse-engineered map of Ellucian's DegreeWorks and Banner request/response shapes, assembled from the browser's own Network tab while building. It is **not published in this repo**. Nothing in it is secret (any student with DevTools open sees the same traffic) and it holds no PII, but a turnkey map of a university's internal endpoints isn't ours to hand out. The ADRs that cite it stand on their own; the reference only adds field-level detail.
+
 ## Index
 
 | # | Title | Status | Date |
@@ -50,3 +52,5 @@ For a narrative pass through the whole decision arc, read them in numerical orde
 | [0019](./0019-tool-registry-agent-layer-decomposition.md) | Tool registry + agent-layer decomposition · Amends 0003 | Accepted | 2026-07-07 |
 | [0020](./0020-split-cache-breakpoints-volatile-last.md) | Split cache breakpoints; volatile context after the last breakpoint · Amends 0010 | Accepted | 2026-07-08 |
 | [0021](./0021-mv3-keepalive-and-failure-surfacing.md) | MV3 keepalive for post-stream work + tool-cap/truncation surfacing | Accepted | 2026-07-08 |
+| [0022](./0022-catalog-full-replace-single-term.md) | Course catalog is a full-replace, single-term store · Constrains multi-term | Accepted | 2026-07-08 |
+| [0023](./0023-weekend-meeting-days.md) | Weekend meeting days (Saturday / Sunday) · Fixes the 0008 day mapping | Accepted | 2026-07-08 |

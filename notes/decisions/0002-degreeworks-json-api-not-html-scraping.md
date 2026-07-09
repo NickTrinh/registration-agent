@@ -44,6 +44,6 @@ Removes ~200 lines of dead parser code. Replaces them with a typed client that m
 
 ## References
 
-- API reference: [`notes/degreeworks-api-reference.md`](../degreeworks-api-reference.md) (authoritative, maintained first)
+- API reference: `notes/degreeworks-api-reference.md` (authoritative, maintained first — local-only, see the note in this directory's README)
 - Pattern being mirrored: [`src/background/agent/banner-ssb-client.ts`](../../src/background/agent/banner-ssb-client.ts)
 - Retires: `src/content/degreeworks-content.ts`, `src/background/agent/degreeworks-parser.ts`

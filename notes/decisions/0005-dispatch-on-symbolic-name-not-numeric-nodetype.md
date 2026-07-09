@@ -47,5 +47,5 @@ Rejected as a default. The audit has hundreds of rule nodes per student, and a s
 
 ## References
 
-- [`notes/degreeworks-api-reference.md`](../degreeworks-api-reference.md) — Qualifier section has the full dispatch table.
+- `notes/degreeworks-api-reference.md` (local-only) — Qualifier section has the full dispatch table.
 - Ellucian Scribe rule language is the external source of truth for qualifier/rule keywords (not publicly linked here because docs are behind Ellucian customer portal).

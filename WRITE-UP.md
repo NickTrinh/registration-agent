@@ -82,7 +82,7 @@ DegreeWorks and Banner are Ellucian products used at hundreds of US universities
 | Looking for | Go to |
 |---|---|
 | ADR register (the reasoning behind every shaping decision) | [`notes/decisions/`](notes/decisions/) |
-| DegreeWorks API reference (reverse-engineered) | [`notes/degreeworks-api-reference.md`](notes/degreeworks-api-reference.md) |
+| Anonymized API captures (offline test loop) | [`notes/fixtures/`](notes/fixtures/) |
 | Demo walkthrough | [`notes/TESTING.md`](notes/TESTING.md) |
 | The PII boundary in code | [`src/background/agent/degreeworks-audit-to-text.ts`](src/background/agent/degreeworks-audit-to-text.ts) |
 | The CORS carveout proxy | [`src/background/agent/degreeworks-api-client.ts`](src/background/agent/degreeworks-api-client.ts) (`fetchWhatIfAudit`) |

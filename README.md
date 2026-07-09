@@ -109,6 +109,8 @@ Every shaping decision is captured as an ADR under [`notes/decisions/`](notes/de
 | [0019](notes/decisions/0019-tool-registry-agent-layer-decomposition.md) | Tool registry + agent-layer decomposition · Amends 0003 |
 | [0020](notes/decisions/0020-split-cache-breakpoints-volatile-last.md) | Split cache breakpoints; volatile context after the last breakpoint · Amends 0010 |
 | [0021](notes/decisions/0021-mv3-keepalive-and-failure-surfacing.md) | MV3 keepalive for post-stream work + tool-cap/truncation surfacing |
+| [0022](notes/decisions/0022-catalog-full-replace-single-term.md) | Course catalog is a full-replace, single-term store |
+| [0023](notes/decisions/0023-weekend-meeting-days.md) | Weekend meeting days (Saturday / Sunday) · Fixes the 0008 day mapping |
 
 See [`notes/decisions/README.md`](notes/decisions/README.md) for why the project uses ADRs and how to read them.
 
@@ -144,8 +146,8 @@ registration-agent/
 ├── package.json                          # npm scripts + deps
 ├── notes/
 │   ├── TESTING.md                        # demo walkthrough
-│   ├── degreeworks-api-reference.md      # reverse-engineered Ellucian DegreeWorks JSON API reference
-│   └── decisions/                        # 21 ADRs — the reasoning behind every shaping decision
+│   ├── fixtures/                         # anonymized API captures for the offline test loop
+│   └── decisions/                        # 23 ADRs — the reasoning behind every shaping decision
 └── src/
     ├── background/                       # service worker (orchestrator + API clients + memory + curator)
     ├── content/                          # content script (~10 lines, pings the worker on DW load)

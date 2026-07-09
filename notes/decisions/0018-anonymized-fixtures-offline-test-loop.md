@@ -54,6 +54,6 @@ Rejected as scope for this pass. The highest-value, lowest-friction targets are 
 
 - [`notes/fixtures/audit.fixture.json`](../fixtures/audit.fixture.json), [`notes/fixtures/banner-sections.fixture.json`](../fixtures/banner-sections.fixture.json)
 - [`src/background/agent/degreeworks-audit-to-text.test.ts`](../../src/background/agent/degreeworks-audit-to-text.test.ts) — renderer snapshot + PII regression
-- [`src/background/agent/what-if.ts`](../../src/background/agent/what-if.ts) — extracted `buildWhatIfGoals`
+- [`src/background/agent/tools/what-if.ts`](../../src/background/agent/tools/what-if.ts) — extracted `buildWhatIfGoals` (moved under `tools/` by ADR 0019)
 - [ADR 0009](./0009-pii-boundary-at-renderer.md) — the boundary this test now enforces
 - [ADR 0017](./0017-retrospective.md) — the rebuild item this acts on

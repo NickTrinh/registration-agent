@@ -12,7 +12,7 @@ DegreeWorks surfaces three features in the UI that each return "an audit" and th
 2. **What-If audit** — "what would my audit look like if I swapped in this major / minor / concentration / college?" Different worksheet tab in DegreeWorks UI.
 3. **Look-Ahead audit** — "what would my audit look like if I add these hypothetical courses I haven't taken?" Another worksheet tab. The `SDLOKAHD` role appeared in our test JWT, confirming it's enabled at Fordham.
 
-Discovery: the regular audit is `GET /api/audit?studentId=...&school=U&degree=BS&...` with a custom vendor media-type Accept header (`application/vnd.net.hedtech.degreeworks.dashboard.audit.v1+json`). What-If was captured live on 2026-04-14 via the Network tab by swapping Neuroscience → Psychology in the DegreeWorks UI. Surprise: the request is a `POST` to *the same path* (`/api/audit`, no query string) with plain `application/json` Accept — no vendor media type — and a JSON body carrying `studentId`, a base curriculum (`school` / `degree` / `catalogYear`), a `goals` array (curriculum overrides), a `classes` array (hypothetical courses), and `isKeepCurriculum` / `isIncludeInprogress` / `isIncludePreregistered` flags. Full request-body schema in [`../degreeworks-api-reference.md`](../degreeworks-api-reference.md).
+Discovery: the regular audit is `GET /api/audit?studentId=...&school=U&degree=BS&...` with a custom vendor media-type Accept header (`application/vnd.net.hedtech.degreeworks.dashboard.audit.v1+json`). What-If was captured live on 2026-04-14 via the Network tab by swapping Neuroscience → Psychology in the DegreeWorks UI. Surprise: the request is a `POST` to *the same path* (`/api/audit`, no query string) with plain `application/json` Accept — no vendor media type — and a JSON body carrying `studentId`, a base curriculum (`school` / `degree` / `catalogYear`), a `goals` array (curriculum overrides), a `classes` array (hypothetical courses), and `isKeepCurriculum` / `isIncludeInprogress` / `isIncludePreregistered` flags. Full request-body schema in `notes/degreeworks-api-reference.md` (local-only).
 
 The server responded with the same top-level audit shape as the GET, but `auditHeader.whatIf: "Y"` and the `blockArray` rewritten to reflect the hypothetical major. `goals: []` is the empty/identity for curriculum overrides; `classes: []` is the empty/identity for hypothetical courses. Populating either (or both) expresses any of the three modes — regular (empty arrays, `isKeepCurriculum: true`), What-If (goals populated), Look-Ahead (classes populated).
 
@@ -52,5 +52,5 @@ Rejected because Look-Ahead is ~0 incremental code once What-If exists — popul
 
 ## References
 
-- [`notes/degreeworks-api-reference.md`](../degreeworks-api-reference.md) — "⭐ What-If audits" section has the full request/response documentation and a ready-to-paste `fetchWhatIfAudit()` sketch.
+- `notes/degreeworks-api-reference.md` (local-only) — "⭐ What-If audits" section has the full request/response documentation and a ready-to-paste `fetchWhatIfAudit()` sketch.
 - Live capture (cURL) from 2026-04-14 DegreeWorks Network tab — not committed (contains JWT).

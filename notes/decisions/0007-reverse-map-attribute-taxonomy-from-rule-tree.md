@@ -62,5 +62,5 @@ Doesn't scale (we have ~15 core slots × ~8 majors we want to support) and the a
 
 ## References
 
-- [`notes/degreeworks-api-reference.md`](../degreeworks-api-reference.md) — the `Requirement` and `CourseMatcher` and `WithClause` interfaces document the tree shape the reverse-mapper walks.
+- `notes/degreeworks-api-reference.md` (local-only) — the `Requirement` and `CourseMatcher` and `WithClause` interfaces document the tree shape the reverse-mapper walks.
 - Deleted: `projects/ai-challenge/2025-2026 Fordham Academic Bulletin-core-curriculum.pdf`, `projects/ai-challenge/data/core-curriculum.json`, `projects/ai-challenge/data/`.
