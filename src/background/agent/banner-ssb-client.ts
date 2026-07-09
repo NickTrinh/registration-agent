@@ -94,11 +94,37 @@ interface SearchResultsResponse {
   ztcEncodedImage?: string;  // 50KB base64 PNG — strip before storing
 }
 
+// ─── Session expiry ───────────────────────────────────────────────────────────
+//
+// An expired Banner session is NOT a 4xx. Ellucian 302s to the SSO login page,
+// `fetch` follows the redirect, and we get a 200 with an HTML body. Left alone,
+// `.json()` throws a raw SyntaxError that reaches the UI as a generic catalog
+// failure — the student is told "Unexpected token '<'" and given no way out.
+// A typed error lets the UI offer the one recovery that works.
+// Implements: ADR 0029.
+
+export const SESSION_EXPIRED_MESSAGE =
+  "Your Fordham registration session expired. Open Browse Classes and run one " +
+  "search to re-establish it, then refresh the catalog.";
+
+export const BROWSE_CLASSES_URL = `${BASE}/classSearch/classSearch`;
+
+export class SessionExpiredError extends Error {
+  constructor(message: string = SESSION_EXPIRED_MESSAGE) {
+    super(message);
+    this.name = "SessionExpiredError";
+  }
+}
+
 // ─── Low-level helpers ────────────────────────────────────────────────────────
 
 async function getJSON<T>(url: string): Promise<T> {
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) throw new Error(`Banner GET ${url} → ${res.status}`);
+  // Content-type, not body-sniffing: the login page is served as text/html and
+  // every real Banner endpoint answers application/json.
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("json")) throw new SessionExpiredError();
   return res.json() as Promise<T>;
 }
 
@@ -224,11 +250,10 @@ export async function fetchAllSectionsForTerm(
     });
 
     if (!success && offset === 0) {
-      throw new Error(
-        "Banner searchResults returned success:false. The registration session " +
-        "likely expired — open my.fordham.edu → Registration → Browse Classes, " +
-        "run one search manually to re-establish the session, then retry."
-      );
+      // Same user-visible failure as an HTML login page, one layer deeper: the
+      // session is alive enough to answer JSON but lost its bound criteria.
+      // Same typed error → same recovery affordance.
+      throw new SessionExpiredError();
     }
 
     all.push(...sections);

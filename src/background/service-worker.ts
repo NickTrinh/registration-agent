@@ -18,6 +18,8 @@ import type { ConversationMessage } from "../shared/types";
 import {
   getTerms,
   fetchAllSectionsForTerm,
+  SessionExpiredError,
+  BROWSE_CLASSES_URL,
 } from "./agent/banner-ssb-client";
 import { bannerSectionsToCourses } from "./agent/banner-to-course";
 import { saveCourses } from "../shared/db";
@@ -596,9 +598,15 @@ async function refreshCatalog(term: string): Promise<void> {
     });
   } catch (err) {
     console.error("[FordhamHelper] Catalog refresh failed:", err);
+    // `expired` splits the taxonomy the UI renders: a recoverable session
+    // expiry (one action: re-establish the Banner session) vs. an opaque
+    // failure (no action, raw text). Implements: ADR 0029.
+    const expired = err instanceof SessionExpiredError;
     broadcast({
       type: "CATALOG_ERROR",
       error: err instanceof Error ? err.message : String(err),
+      expired,
+      ...(expired ? { recoveryUrl: BROWSE_CLASSES_URL } : {}),
     });
   }
 }
