@@ -6,6 +6,8 @@
 // flows through handlers defined here, and all chrome.storage.local writes
 // are owned by the worker so in-memory caches stay coherent.
 // Implements: ADR 0021 (MV3 keepalive on extractProfile + refreshCatalog).
+// Implements: ADR 0027 (CLEAR_MEMORIES is a barrier: it cancels the in-flight
+// chat and wipes every key the memory state lives in, not just `memories`).
 //
 // The agent layer (chat loop, prompts, tool registry) lives under agent/;
 // this file owns the caches, refresh flows, and message router, and injects
@@ -28,14 +30,15 @@ import { auditResponseToText } from "./agent/degreeworks-audit-to-text";
 import {
   loadMemories,
   deleteMemory,
-  clearMemories,
+  clearAllMemoryState,
   loadProvisional,
   deleteProvisional,
   clearProvisional,
   editMemory,
+  CURATOR_BUFFER_KEY,
   type MemoryEditInput,
 } from "./agent/memory-store";
-import type { ConversationTurn } from "./agent/memory-curator";
+import { appendCuratorTurn } from "./agent/memory-curator";
 import { handleAIChat, cancelCurrentChat, type ChatDeps } from "./agent/chat-loop";
 import type { ChatMode, StudentGoal } from "./agent/tools/types";
 import { buildProfileExtractionPrompt } from "./agent/prompts";
@@ -105,15 +108,11 @@ async function hydrateStudentCache(): Promise<{
   return { id, goal };
 }
 
-// ─── Curator turn buffer ──────────────────────────────────────────────────────
+// ─── Curator auto-save toggle ─────────────────────────────────────────────────
 //
-// Rolling window of the most recent N user/assistant pairs, persisted to
-// chrome.storage.local so it survives MV3 service-worker unloads. Used ONLY
-// by the background memory curator (Haiku) for multi-turn pattern detection —
-// never enters Sonnet's system prompt.
-
-const CURATOR_BUFFER_KEY = "curator_turns";
-const CURATOR_BUFFER_SIZE = 5;
+// The curator turn buffer itself moved to agent/memory-curator.ts, so its
+// read-modify-write can share the memory-store lock with "clear all memories".
+// This file still injects `appendCuratorTurn` into the chat loop's deps.
 
 // User-facing toggle for auto-saving memories from chat (Settings panel).
 // Default ON. When OFF the Haiku curator is skipped entirely and no
@@ -125,14 +124,6 @@ async function isCuratorAutoSaveEnabled(): Promise<boolean> {
   const r = await chrome.storage.local.get(AUTO_SAVE_KEY);
   const v = r[AUTO_SAVE_KEY];
   return v === undefined ? true : Boolean(v);
-}
-
-async function appendCuratorTurn(turn: ConversationTurn): Promise<ConversationTurn[]> {
-  const r = await chrome.storage.local.get(CURATOR_BUFFER_KEY);
-  const existing = (r[CURATOR_BUFFER_KEY] as ConversationTurn[] | undefined) ?? [];
-  const next = [...existing, turn].slice(-CURATOR_BUFFER_SIZE);
-  await chrome.storage.local.set({ [CURATOR_BUFFER_KEY]: next });
-  return next;
 }
 
 // Worker-owned capabilities handed to the chat loop. Everything here touches
@@ -244,8 +235,25 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     case "CLEAR_MEMORIES": {
-      clearMemories().then(() => {
+      // "Clear my memories" is a barrier, and the worker enforces it — not the
+      // caller. Two things have to happen or state comes back from the dead:
+      //
+      //   1. Cancel the in-flight chat. Its curator pass reads the store before
+      //      Haiku and writes after; the abort stops the stream, and the
+      //      generation bump inside clearAllMemoryState discards any curator
+      //      write that already got past its read. cancelCurrentChat drives the
+      //      chat loop's AbortError path, which broadcasts AI_DONE — the
+      //      sidebar's terminal event, so its spinner resolves.
+      //   2. Wipe every key the memory state lives in — `memories`,
+      //      `provisional`, and the curator turn buffer. Clearing only
+      //      `memories` leaves the other two to refill it.
+      //
+      // Putting this in the handler rather than in Settings.tsx means every
+      // future caller of CLEAR_MEMORIES gets the invariant for free.
+      cancelCurrentChat();
+      clearAllMemoryState().then(() => {
         broadcast({ type: "MEMORY_UPDATED", memories: [] });
+        broadcast({ type: "PROVISIONAL_UPDATED", provisional: [] });
       });
       break;
     }

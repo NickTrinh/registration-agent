@@ -16,18 +16,27 @@
 // Stub mode (default): logs what it would have written; touches no storage.
 // Write mode: persists hardFacts, updates provisional, promotes on threshold,
 // and absorbs provisional rows superseded by hard facts.
+//
+// Concurrency: the curator reads the store, then awaits a multi-second Haiku
+// call, then writes back. The student can clear their memories inside that
+// window. The curator therefore captures the store generation *before* its read
+// and commits through `applyCuratorWrites`, which discards the whole batch if
+// the generation moved. Without that, the write resurrects memories the student
+// just deleted. See ADR 0027.
+//
+// Implements: ADR 0027 — see notes/decisions/.
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { MemoryEntry, MemoryType, ProvisionalInterest } from "../../shared/types";
 import {
-  addMemory,
   loadMemories,
   memoriesToIndexText,
   loadProvisional,
   provisionalToIndexText,
-  addProvisionalHit,
-  promoteProvisional,
-  absorbProvisionalByTopic,
+  applyCuratorWrites,
+  getStoreGeneration,
+  withStoreLock,
+  CURATOR_BUFFER_KEY,
   PROMOTION_THRESHOLD,
 } from "./memory-store";
 
@@ -322,6 +331,11 @@ export async function runCurator(
 
   if (cleanedTurns.length === 0) return emptyResult;
 
+  // Captured before the read, not after: a clear landing between the read and
+  // the capture would leave us holding the post-clear generation and a
+  // pre-clear memory list — exactly the write we need to drop.
+  const generationAtRead = getStoreGeneration();
+
   const existingMemories = await loadMemories();
   const existingProvisional = await loadProvisional();
   const memoryIndex = memoriesToIndexText(existingMemories) || "(none yet)";
@@ -375,45 +389,58 @@ Focus on the MOST RECENT turn. Earlier turns are context so you can detect reinf
   };
 
   if (options.write === true) {
-    // Hard facts → memories + absorb matching provisional rows.
-    for (const fact of hardFacts) {
-      try {
-        await addMemory({
-          type: fact.type,
-          description: fact.description,
-          content: fact.content,
-          sourceQuote: fact.sourceQuote,
-        });
-        if (fact.topic) {
-          const absorbed = await absorbProvisionalByTopic(fact.topic);
-          result.absorbed += absorbed;
-        }
-      } catch (err) {
-        console.warn("[Curator] addMemory failed for hard fact:", fact, err);
-      }
+    const outcome = await applyCuratorWrites(generationAtRead, {
+      hardFacts,
+      provisionalHits: provisionalHits.map((hit) => ({
+        topic: hit.topic,
+        description: hit.description,
+        proposedType: hit.proposedType,
+        framing: hit.framing,
+      })),
+    });
+
+    if (outcome.dropped) {
+      // The student cleared the store (or deleted a memory) while Haiku was
+      // thinking. Everything above was derived from a store that no longer
+      // exists. Report nothing saved — the caller's toasts are keyed off these
+      // arrays, and announcing a save that was correctly discarded is worse
+      // than staying quiet.
+      console.log(
+        "[Curator] WRITE — dropped: memories were cleared while the curator was running."
+      );
+      return emptyResult;
     }
 
-    // Provisional hits → increment counters, promote when threshold met.
-    for (const hit of provisionalHits) {
-      try {
-        const updated = await addProvisionalHit({
-          topic: hit.topic,
-          description: hit.description,
-          proposedType: hit.proposedType,
-          framing: hit.framing,
-        });
-        if (updated.count >= PROMOTION_THRESHOLD) {
-          const promoted = await promoteProvisional(updated.id);
-          if (promoted) result.promoted.push(promoted);
-        }
-      } catch (err) {
-        console.warn("[Curator] provisional update failed for hit:", hit, err);
-      }
-    }
+    result.promoted = outcome.promoted;
+    result.absorbed = outcome.absorbed;
   }
 
   logResult(result, rawText, options.write === true);
   return result;
+}
+
+// ─── Curator Turn Buffer ─────────────────────────────────────────────────────
+//
+// Rolling window of the most recent CURATOR_BUFFER_SIZE user/assistant pairs,
+// persisted to chrome.storage.local so it survives MV3 service-worker unloads.
+// Used ONLY by the curator for multi-turn pattern detection — never enters
+// Sonnet's system prompt.
+//
+// Moved here from service-worker.ts, where its read-modify-write ran unlocked:
+// a turn appended while "clear all memories" was wiping the buffer would write
+// the old window straight back, resurrecting the conversation the student had
+// just erased. It now shares the memory-store lock with the clear.
+
+const CURATOR_BUFFER_SIZE = 5;
+
+export async function appendCuratorTurn(turn: ConversationTurn): Promise<ConversationTurn[]> {
+  return withStoreLock(async () => {
+    const r = await chrome.storage.local.get(CURATOR_BUFFER_KEY);
+    const existing = (r[CURATOR_BUFFER_KEY] as ConversationTurn[] | undefined) ?? [];
+    const next = [...existing, turn].slice(-CURATOR_BUFFER_SIZE);
+    await chrome.storage.local.set({ [CURATOR_BUFFER_KEY]: next });
+    return next;
+  });
 }
 
 // ─── Parsing & Validation ────────────────────────────────────────────────────
