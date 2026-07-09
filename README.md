@@ -111,6 +111,8 @@ Every shaping decision is captured as an ADR under [`notes/decisions/`](notes/de
 | [0021](notes/decisions/0021-mv3-keepalive-and-failure-surfacing.md) | MV3 keepalive for post-stream work + tool-cap/truncation surfacing |
 | [0022](notes/decisions/0022-catalog-full-replace-single-term.md) | Course catalog is a full-replace, single-term store |
 | [0023](notes/decisions/0023-weekend-meeting-days.md) | Weekend meeting days (Saturday / Sunday) · Fixes the 0008 day mapping |
+| [0025](notes/decisions/0025-dark-mode-is-a-token-split-not-an-inversion.md) | Dark mode is a token split, not an inversion |
+| [0026](notes/decisions/0026-system-events-never-speak-in-the-advisors-voice.md) | System events never speak in the advisor's voice |
 | [0027](notes/decisions/0027-serialize-and-generation-guard-memory-writes.md) | Serialize memory writes and guard them with a store generation · Applies 0003 |
 | [0028](notes/decisions/0028-only-conversational-turns-enter-the-prompt-path.md) | Only conversational turns enter the prompt path (`uiOnly`) |
 | [0029](notes/decisions/0029-an-expired-banner-session-is-a-typed-error.md) | An expired Banner session is a typed error, not a SyntaxError |
@@ -151,7 +153,7 @@ registration-agent/
 ├── notes/
 │   ├── TESTING.md                        # demo walkthrough
 │   ├── fixtures/                         # anonymized API captures for the offline test loop
-│   └── decisions/                        # 25 ADRs — the reasoning behind every shaping decision
+│   └── decisions/                        # 29 ADRs — the reasoning behind every shaping decision
 └── src/
     ├── background/                       # service worker (orchestrator + API clients + memory + curator)
     ├── content/                          # content script (~10 lines, pings the worker on DW load)
