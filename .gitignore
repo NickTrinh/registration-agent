@@ -13,6 +13,17 @@ notes/screenshots/
 # See README "Rules of the road" — never commit these.
 notes/fixtures/*.real.*
 
+# Website-structure reference — real Banner/DegreeWorks API shapes captured while
+# building. No PII, but we keep the reverse-engineering map out of the public repo
+# (optics/courtesy, NOT security — these endpoints are DevTools-discoverable).
+# Held locally; wire into tests only when a feature actually consumes them.
+# (Patch ruling 2026-07-08.)
+notes/degreeworks-api-reference.md
+notes/fixtures/course-description.fixture.html
+notes/fixtures/section-prerequisites.fixture.html
+notes/fixtures/course-mutual-exclusions.fixture.html
+notes/fixtures/terms.fixture.json
+
 # OS metadata
 .DS_Store
 Thumbs.db
