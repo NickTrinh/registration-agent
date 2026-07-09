@@ -17,7 +17,7 @@ Sonnet will greet you by first name and ask five to seven questions about intere
 **What to watch for during intake:**
 
 - Sonnet asks one question at a time and follows up on specifics, rather than reading off a pre-set questionnaire.
-- Saves are **deferred**, not per-turn — no 💾 chips should appear mid-intake, and no save-toast storm. The queue fills silently.
+- Saves are **deferred**, not per-turn — no `SAVED MEMORY` citations should appear mid-intake, and no save-toast storm. The queue fills silently.
 
 **At the end of the intake:**
 
@@ -27,7 +27,7 @@ Sonnet will greet you by first name and ask five to seven questions about intere
 - Sonnet streams a warm three- or four-line wrap-up into a new bubble below the save list.
 - An inline **"Continue to chat →"** button appears; the input bar stays disabled until you press it.
 
-Press **Continue** — the intake transcript and save list stay visible (scroll back to re-read). The welcome card won't reappear unless you explicitly re-run onboarding from Settings.
+Press **Continue** — the chat clears to a fresh, personalized greeting with a quiet one-line marker ("Onboarding complete — memories saved · view them in Settings"). The intake transcript is scaffolding; its durable output is the memory list in Settings. The welcome card won't reappear unless you explicitly re-run onboarding.
 
 ---
 
@@ -52,7 +52,7 @@ Back on the Advisor tab, ask a question that should trigger recall of one of you
 - *"How does my schedule constraint affect what I can take?"*
 - *"Given my goals, which professors would be worth reaching out to?"*
 
-**Expected:** A purple 🧠 chip appears (*"Recalling #3"*) and Sonnet's response references the specific memory content (*"since you mentioned working Friday 1–5…"*).
+**Expected:** A citation line appears above the answer — `RECALLED · #3 · 1 loaded` in tracked caps — and Sonnet's response references the specific memory content (*"since you mentioned working Friday 1–5…"*).
 
 ---
 
@@ -63,7 +63,7 @@ Ask something that requires live catalog data:
 - *"What upper-division CISC courses are open next semester?"*
 - *"Any English sections on Tuesday/Thursday mornings?"*
 
-**Expected:** An amber 🔍 chip with filter summary (*"CISC · ≥3000 · open seats · 42 results"*), and a response listing real CRNs, instructors, meeting times, and seat counts. Markdown tables render cleanly.
+**Expected:** A citation line with the filter summary — `SEARCHED CATALOG · CISC · ≥3000 · open seats · 42 results` — and a response listing real CRNs, instructors, meeting times, and seat counts. While the search is in flight, the citation ends in `…` and the shimmering status phrase reads "Searching the catalog…". Markdown tables render cleanly.
 
 ---
 
@@ -74,7 +74,7 @@ Ask about a core requirement:
 - *"What courses can I take that satisfy American Pluralism?"*
 - *"Show me Eloquentia Perfecta 4 options."*
 
-**Expected:** The first call is `list_attributes` (amber chip, attribute discovery), the second filters by the discovered code (e.g. `PLUR`, `AMER`), and the response lists sections tagged with that attribute.
+**Expected:** Two stacked citation lines: `LISTED ATTRIBUTES · N found` first (attribute discovery), then a `SEARCHED CATALOG` line filtering by the discovered code (e.g. `PLUR`, `AMER`) — and the response lists sections tagged with that attribute.
 
 ---
 
@@ -85,7 +85,7 @@ Ask about a hypothetical major switch:
 - *"What if I switched my major to psychology?"*
 - *"How would my audit look as a CS major instead?"*
 
-**Expected:** A blue 🔮 chip (*"What-If: PSYC"*), a 3–5 second "running audit…" status, then a response describing the hypothetical: new percent complete, newly-satisfied blocks, newly-unmet requirements. Sonnet compares against your real audit (which is still loaded in the background).
+**Expected:** A `WHAT-IF AUDIT · PSYC…` citation line, the status phrase "Running a what-if audit…" shimmering for the 3–5 second wait, then a response describing the hypothetical: new percent complete, newly-satisfied blocks, newly-unmet requirements. Sonnet compares against your real audit (which is still loaded in the background).
 
 This is the most complex tool path — it proxies a POST through the active DegreeWorks tab via `chrome.scripting.executeScript` to bypass the extension's Origin being blocked by DegreeWorks' CORS allowlist. See [ADR 0016](decisions/0016-cors-carveout-for-whatif-proxy.md).
 
@@ -98,7 +98,7 @@ Tell Sonnet to remove one of your memories:
 - *"Forget that I mentioned philosophy of mind — I was just being curious."*
 - *"Delete the memory about library shifts, that changed."*
 
-**Expected:** A red 🗑️ chip (*"Forgetting #N"*), a confirmation in the response, and the memory gone from the Settings tab.
+**Expected:** A `FORGOT · #N · done` citation line, a confirmation in the response, and the memory gone from the Settings tab. (A failed tool call renders its citation in red with `· failed` — color marks state, never tool identity.)
 
 ---
 
@@ -109,7 +109,7 @@ Sonnet has a `save_memory` tool in normal chat mode (not just onboarding), so ex
 - *"Remember that I'm planning to apply to MD/PhD programs after graduation."*
 - *"Keep track that I can't take classes before 10am — I'm not a morning person."*
 
-**Expected:** A green 💾 chip (*"Memory saved: …"*) in the chat, a matching toast above the input bar for about three seconds, and a new row in Settings → Long-Term Memory with the verbatim quote attached.
+**Expected:** A `SAVED MEMORY · <description> · saved` citation line in the chat, a maroon-ruled "SAVED · …" line above the input bar for a few seconds, and a new row in Settings → Long-Term Memory with the verbatim quote attached.
 
 ---
 
@@ -121,7 +121,7 @@ To test the intake flow again, go to Settings → scroll to the bottom of Long-T
 
 ## Known limitations
 
-- **Thinking indicator is idle-only.** The rotating "Pondering / Consulting the audit / …" phrases only show while Sonnet hasn't started emitting output yet. Mid-stream there's no indicator — the text itself is the indicator.
+- **Thinking indicator is idle-only.** The shimmering status phrase (a real tool description like "Searching the catalog…" when one is in flight, otherwise a rotating registrar's-world line) only shows while Sonnet hasn't started emitting text yet. Mid-stream there's no indicator — the paced, growing prose is the indicator.
 - **Catalog is per-term.** Switching the term selector in Settings requires a manual Refresh; the extension doesn't auto-update catalogs.
 - **DegreeWorks session expiry.** Fordham cookies expire after about an hour of DegreeWorks inactivity. If audit refresh errors, open DegreeWorks in another tab to re-authenticate — the side panel will surface a targeted banner pointing you there.
 - **`npm run dev` doesn't work for extension loading.** Vite's HMR client tries to load from `localhost:5173`, which Chrome blocks from the extension origin (CORS). Use `npm run build`.
@@ -130,14 +130,16 @@ To test the intake flow again, go to Settings → scroll to the bottom of Long-T
 
 ## Tool reference
 
-| Tool | Chip | When Sonnet calls it |
+Tool calls render as citation lines — tracked-caps verb, mono detail, resolved count — stacked like footnotes above the answer they ground (ADR 0024). Color marks *state* (grey in flight, ink resolved, red failed), never tool identity.
+
+| Tool | Citation verb | When Sonnet calls it |
 |---|---|---|
-| `search_catalog` | 🔍 amber | Course and section lookups with filters |
-| `list_attributes` | 🔍 amber | Discovering requirement-tag codes (once per conversation) |
-| `recall_memory` | 🧠 purple | Loading full memory content by ID |
-| `save_memory` | 💾 green | Onboarding, or normal chat when the student says "remember X" |
-| `forget_memory` | 🗑️ red | Student asks to remove a memory |
-| `run_what_if` | 🔮 blue | Hypothetical major / minor / concentration switch |
+| `search_catalog` | `SEARCHED CATALOG` | Course and section lookups with filters |
+| `list_attributes` | `LISTED ATTRIBUTES` | Discovering requirement-tag codes (once per conversation) |
+| `recall_memory` | `RECALLED` | Loading full memory content by ID |
+| `save_memory` | `SAVED MEMORY` | Onboarding, or normal chat when the student says "remember X" |
+| `forget_memory` | `FORGOT` | Student asks to remove a memory |
+| `run_what_if` | `WHAT-IF AUDIT` | Hypothetical major / minor / concentration switch |
 
 A seventh worker, the Haiku memory curator, runs fire-and-forget after every normal-mode turn with no visible chip. See [ADRs 0011 and 0013](decisions/) for the architecture.
 

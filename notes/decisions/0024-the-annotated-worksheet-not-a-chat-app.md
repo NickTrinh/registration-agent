@@ -1,6 +1,6 @@
 # 0024 — The annotated worksheet, not a chat app
 
-- **Status**: Accepted
+- **Status**: Accepted · Amended by 0032 (user bubble grey, Continue starts a fresh chat)
 - **Date**: 2026-07-09
 - **Related**: batches the visual-redesign decisions; sits on the token split (0025); `<Notice>` (0026) owns everything with a severity; lands 0028's Alternative B (see its Revisited note)
 

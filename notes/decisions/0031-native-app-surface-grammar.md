@@ -1,6 +1,6 @@
 # 0031. The native-app surface grammar (chrome, settings, composer, motion)
 
-- **Status**: Accepted · Amends 0025 (header fill) · Preserves 0024's structure
+- **Status**: Accepted · Amends 0025 (header fill) · Preserves 0024's structure · Amended by 0032 (stone palette, grotesque wordmark)
 - **Date**: 2026-07-09
 
 ## Context

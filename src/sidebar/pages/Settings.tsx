@@ -1,7 +1,10 @@
 // Implements: ADR 0031 (native-app surface grammar — grouped settings)
+// Implements: ADR 0032 (the Claude-app dialect)
 import { useState, useEffect, type ReactNode } from "react";
 import type { MemoryEntry } from "../../shared/types";
 import Notice from "../components/Notice";
+import { memoryTypeStyle } from "../components/memoryTypeStyles";
+import { personalize } from "../personalize";
 import {
   applyTheme,
   loadThemePreference,
@@ -30,6 +33,10 @@ export default function Settings() {
   const [apiKey, setApiKey] = useState("");
   const [saved, setSaved] = useState(false);
   const [maskedKey, setMaskedKey] = useState<string | null>(null);
+  // Collapsed key card (ADR 0032): once a key exists the input row hides —
+  // a settled setting shouldn't keep offering its empty form. "Replace"
+  // reopens it.
+  const [replacingKey, setReplacingKey] = useState(false);
 
   const [profile, setProfile] = useState<string | null>(null);
   const [profileDate, setProfileDate] = useState<string | null>(null);
@@ -67,6 +74,14 @@ export default function Settings() {
   // Theme preference: light / dark / system (default).
   const [theme, setTheme] = useState<ThemePreference>("system");
 
+  // [NAME]/[ADVISOR]/[ADVISOR_EMAIL] render-time substitution for the
+  // profile card (ADR 0032; Patch-approved). Same storage keys the chat
+  // reads; edit mode still edits the RAW placeholder text — the tokens are
+  // the stored truth, personalization is a view.
+  const [firstName, setFirstName] = useState<string | null>(null);
+  const [advisorEmail, setAdvisorEmail] = useState<string | null>(null);
+  const [advisorName, setAdvisorName] = useState<string | null>(null);
+
   // Two-step confirms for the destructive actions. `confirm()` and `alert()`
   // are blocking OS chrome: unthemeable, out of place in a side panel, and
   // they render light in dark mode no matter what `color-scheme` says.
@@ -79,9 +94,17 @@ export default function Settings() {
   }, []);
 
   useEffect(() => {
-    // One round trip instead of three — fewer IPC hops, fewer race windows.
+    // One round trip instead of six — fewer IPC hops, fewer race windows.
     chrome.storage.local.get(
-      ["anthropicApiKey", "auditText", "studentProfile", "profileGeneratedAt"],
+      [
+        "anthropicApiKey",
+        "auditText",
+        "studentProfile",
+        "profileGeneratedAt",
+        "studentFirstName",
+        "studentAdvisorName",
+        "studentAdvisorEmail",
+      ],
       (r) => {
         const key = r.anthropicApiKey as string | undefined;
         if (key) setMaskedKey(`sk-ant-...${key.slice(-6)}`);
@@ -93,6 +116,9 @@ export default function Settings() {
             d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
           );
         }
+        if (r.studentFirstName) setFirstName(r.studentFirstName as string);
+        if (r.studentAdvisorName) setAdvisorName(r.studentAdvisorName as string);
+        if (r.studentAdvisorEmail) setAdvisorEmail(r.studentAdvisorEmail as string);
       }
     );
 
@@ -162,12 +188,14 @@ export default function Settings() {
     chrome.storage.local.set({ anthropicApiKey: apiKey.trim() }, () => {
       setMaskedKey(`sk-ant-...${apiKey.trim().slice(-6)}`);
       setApiKey("");
+      setReplacingKey(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     });
   }
 
   function clearKey() {
+    setReplacingKey(false);
     chrome.storage.local.remove("anthropicApiKey", () => setMaskedKey(null));
   }
 
@@ -286,7 +314,7 @@ export default function Settings() {
     // surface, each group is a raised rounded card of hairline-divided rows,
     // the explainer is a small footer BELOW its card — heading-first
     // documents become label-first controls.
-    <div className="h-full overflow-y-auto bg-gray-100 dark:bg-gray-950 px-4 py-5 space-y-7">
+    <div className="h-full overflow-y-auto bg-stone-100 dark:bg-stone-950 px-4 py-5 space-y-7">
 
       {/* API Key */}
       <Section
@@ -307,36 +335,51 @@ export default function Settings() {
         }
       >
         {maskedKey && (
-          <div className="flex items-center justify-between px-4 py-2.5">
-            <span className="text-xs text-gray-800 dark:text-gray-100 font-mono">{maskedKey}</span>
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+            <span className="text-xs text-stone-800 dark:text-stone-100 font-mono truncate">
+              {saved ? "Saved ✓" : maskedKey}
+            </span>
+            <span className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => setReplacingKey((v) => !v)}
+                className="focus-ring rounded px-1 text-xs font-medium text-fordham-maroon dark:text-fordham-maroon-ink active:scale-95 transition-transform"
+              >
+                {replacingKey ? "Cancel" : "Replace"}
+              </button>
+              <button
+                onClick={clearKey}
+                className="focus-ring rounded px-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium active:scale-95 transition-transform"
+              >
+                Remove
+              </button>
+            </span>
+          </div>
+        )}
+        {/* The input row only exists while there's something to type into it
+            (ADR 0032): no key yet, or Replace open. A settled setting doesn't
+            keep offering its empty form. */}
+        {(!maskedKey || replacingKey) && (
+          <div className="flex items-center gap-2 px-4 py-2">
+            {/* Borderless field inside the card row — the row IS the field,
+                like a grouped-table text cell. */}
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && saveKey()}
+              placeholder={maskedKey ? "Replace key…" : "sk-ant-…"}
+              aria-label="Anthropic API key"
+              className="focus-ring flex-1 min-w-0 py-1 rounded bg-transparent text-sm font-mono placeholder:text-stone-400 dark:placeholder:text-stone-500"
+            />
             <button
-              onClick={clearKey}
-              className="focus-ring rounded px-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium active:scale-95 transition-transform"
+              onClick={saveKey}
+              disabled={!apiKey.trim()}
+              className="focus-ring rounded px-1 text-sm font-medium text-fordham-maroon dark:text-fordham-maroon-ink disabled:opacity-40 active:scale-95 transition-transform"
             >
-              Remove
+              {saved ? "Saved ✓" : "Save"}
             </button>
           </div>
         )}
-        <div className="flex items-center gap-2 px-4 py-2">
-          {/* Borderless field inside the card row — the row IS the field,
-              like a grouped-table text cell. */}
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && saveKey()}
-            placeholder={maskedKey ? "Replace key…" : "sk-ant-…"}
-            aria-label="Anthropic API key"
-            className="focus-ring flex-1 min-w-0 py-1 rounded bg-transparent text-sm font-mono placeholder:text-gray-400 dark:placeholder:text-gray-500"
-          />
-          <button
-            onClick={saveKey}
-            disabled={!apiKey.trim()}
-            className="focus-ring rounded px-1 text-sm font-medium text-fordham-maroon dark:text-fordham-maroon-ink disabled:opacity-40 active:scale-95 transition-transform"
-          >
-            {saved ? "Saved ✓" : "Save"}
-          </button>
-        </div>
       </Section>
 
       {/* Student Profile */}
@@ -373,12 +416,12 @@ export default function Settings() {
               onChange={(e) => setEditValue(e.target.value)}
               rows={10}
               aria-label="Student profile"
-              className="focus-ring w-full text-xs text-gray-800 dark:text-gray-100 bg-gray-50 dark:bg-gray-800 rounded-lg p-3 font-mono leading-relaxed resize-none"
+              className="focus-ring w-full text-xs text-stone-800 dark:text-stone-100 bg-stone-50 dark:bg-stone-800 rounded-lg p-3 font-mono leading-relaxed resize-none"
             />
             <div className="flex gap-4 justify-end">
               <button
                 onClick={cancelEdit}
-                className="focus-ring rounded px-1 text-sm text-gray-600 dark:text-gray-400 active:scale-95 transition-transform"
+                className="focus-ring rounded px-1 text-sm text-stone-600 dark:text-stone-400 active:scale-95 transition-transform"
               >
                 Cancel
               </button>
@@ -392,11 +435,15 @@ export default function Settings() {
             </div>
           </div>
         ) : profile ? (
-          <pre className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
-            {profile}
+          /* Rendered personalized (ADR 0032): the student reads their own
+             profile with their own name in it, not [NAME] robot-speak. Edit
+             mode above still edits the RAW placeholder text — the tokens are
+             what's stored and sent; the substitution is a view. */
+          <pre className="px-4 py-3 text-xs text-stone-700 dark:text-stone-300 whitespace-pre-wrap font-mono leading-relaxed">
+            {personalize(profile, firstName, advisorEmail, advisorName)}
           </pre>
         ) : (
-          <div className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+          <div className="px-4 py-3 text-xs text-stone-500 dark:text-stone-400">
             No profile yet. Visit your DegreeWorks page to generate one automatically.
           </div>
         )}
@@ -409,7 +456,7 @@ export default function Settings() {
           memories.length > 0 &&
           (pendingClearAll ? (
             <span className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Delete all?</span>
+              <span className="text-xs text-stone-500 dark:text-stone-400">Delete all?</span>
               <button
                 onClick={clearAllMemories}
                 className="focus-ring rounded-full px-2 py-0.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-transform"
@@ -418,7 +465,7 @@ export default function Settings() {
               </button>
               <button
                 onClick={() => setPendingClearAll(false)}
-                className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400"
+                className="focus-ring rounded px-1 text-xs text-stone-600 dark:text-stone-400"
               >
                 Cancel
               </button>
@@ -444,7 +491,7 @@ export default function Settings() {
         {/* Auto-save toggle — row title + switch; the explanation lives in
             the section footer, where iOS puts it. */}
         <label className="flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer">
-          <span className="text-sm text-gray-900 dark:text-gray-100">
+          <span className="text-sm text-stone-900 dark:text-stone-100">
             Auto-save memories from chat
           </span>
           <button
@@ -452,20 +499,26 @@ export default function Settings() {
             role="switch"
             aria-checked={autoSaveEnabled}
             aria-label="Auto-save memories from chat"
+            /* Neutral, not maroon (ADR 0032, Patch ruling: "grey… maroon
+               links are good") — a switch is state, not an accent. */
             className={`focus-ring shrink-0 relative inline-flex h-6 w-10 rounded-full transition-colors duration-200 ${
-              autoSaveEnabled ? "bg-fordham-maroon" : "bg-gray-300 dark:bg-gray-600"
+              autoSaveEnabled
+                ? "bg-stone-900 dark:bg-stone-100"
+                : "bg-stone-300 dark:bg-stone-600"
             }`}
           >
             <span
-              className={`absolute top-0.5 inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ease-spring ${
-                autoSaveEnabled ? "translate-x-[18px]" : "translate-x-0.5"
+              className={`absolute top-0.5 inline-block h-5 w-5 rounded-full shadow transition-transform duration-200 ease-spring ${
+                autoSaveEnabled
+                  ? "translate-x-[18px] bg-white dark:bg-stone-900"
+                  : "translate-x-0.5 bg-white"
               }`}
             />
           </button>
         </label>
 
         {memories.length === 0 ? (
-          <div className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+          <div className="px-4 py-3 text-xs text-stone-500 dark:text-stone-400">
             No memories yet. They'll appear here as you chat — or start by
             completing onboarding in the Advisor tab.
           </div>
@@ -481,11 +534,21 @@ export default function Settings() {
                       the student is reading this row — it wraps instead of
                       truncating behind the type chip. */}
                   {editingId !== m.id && (
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug mb-0.5">
+                    <p className="text-sm font-medium text-stone-900 dark:text-stone-100 leading-snug mb-0.5">
                       {m.description}
-                      <span className="ml-1.5 align-middle text-[10px] uppercase tracking-wide font-semibold text-fordham-maroon dark:text-fordham-maroon-ink bg-fordham-maroon/10 dark:bg-fordham-maroon-ink/10 px-1.5 py-0.5 rounded-full">
-                        {m.type}
-                      </span>
+                      {/* Same colored chip the onboarding save list uses
+                          (memoryTypeStyles, ADR 0032) — one type, one color,
+                          everywhere it appears. */}
+                      {(() => {
+                        const style = memoryTypeStyle(m.type);
+                        return (
+                          <span
+                            className={`ml-1.5 align-middle text-[10px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded-full ${style.bg} ${style.text}`}
+                          >
+                            {style.label}
+                          </span>
+                        );
+                      })()}
                     </p>
                   )}
                   {editingId === m.id ? (
@@ -496,7 +559,7 @@ export default function Settings() {
                         onChange={(e) => setEditDraftDescription(e.target.value)}
                         placeholder="Description (≤10 words)"
                         aria-label="Memory description"
-                        className="focus-ring w-full text-xs px-2 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        className="focus-ring w-full text-xs px-2 py-1.5 bg-stone-50 dark:bg-stone-800 rounded-lg"
                       />
                       <textarea
                         value={editDraftContent}
@@ -504,12 +567,12 @@ export default function Settings() {
                         placeholder="Content (1–3 sentences)"
                         rows={3}
                         aria-label="Memory content"
-                        className="focus-ring w-full text-xs px-2 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg resize-none leading-snug"
+                        className="focus-ring w-full text-xs px-2 py-1.5 bg-stone-50 dark:bg-stone-800 rounded-lg resize-none leading-snug"
                       />
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={cancelMemoryEdit}
-                          className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400 hover:underline"
+                          className="focus-ring rounded px-1 text-xs text-stone-600 dark:text-stone-400 hover:underline"
                         >
                           Cancel
                         </button>
@@ -524,13 +587,13 @@ export default function Settings() {
                     </div>
                   ) : (
                     <>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 leading-snug">{m.content}</p>
+                      <p className="text-xs text-stone-600 dark:text-stone-400 leading-snug">{m.content}</p>
                       {/* ADR 0015: this quote exists so the student can VERIFY
                           the memory against what they remember saying. It is
                           evidence, so it is set like evidence — not shrunk to
                           10px grey italic like a disclaimer nobody reads. */}
                       {m.sourceQuote && (
-                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-snug mt-1.5 pl-2 border-l-2 border-gray-300 dark:border-gray-600">
+                        <p className="text-xs text-stone-600 dark:text-stone-400 leading-snug mt-1.5 pl-2 border-l-2 border-stone-300 dark:border-stone-600">
                           you said: “{m.sourceQuote}”
                         </p>
                       )}
@@ -541,7 +604,7 @@ export default function Settings() {
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => startMemoryEdit(m)}
-                      className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400 hover:text-fordham-maroon dark:hover:text-fordham-maroon-ink"
+                      className="focus-ring rounded px-1 text-xs text-stone-600 dark:text-stone-400 hover:text-fordham-maroon dark:hover:text-fordham-maroon-ink"
                       aria-label={`Edit memory: ${m.description}`}
                       title="Edit"
                     >
@@ -549,7 +612,7 @@ export default function Settings() {
                     </button>
                     <button
                       onClick={() => deleteMemoryEntry(m.id)}
-                      className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400 hover:text-red-700 dark:hover:text-red-400"
+                      className="focus-ring rounded px-1 text-xs text-stone-600 dark:text-stone-400 hover:text-red-700 dark:hover:text-red-400"
                       aria-label={`Delete memory: ${m.description}`}
                       title="Delete"
                     >
@@ -575,7 +638,7 @@ export default function Settings() {
           </div>
         ) : pendingRerun ? (
           <div className="px-4 py-3 space-y-2">
-            <p className="text-xs text-gray-800 dark:text-gray-100 leading-snug">
+            <p className="text-xs text-stone-800 dark:text-stone-100 leading-snug">
               This deletes everything the advisor has learned about you and
               restarts the intake. Your audit, API key, and catalog stay intact.
             </p>
@@ -588,7 +651,7 @@ export default function Settings() {
               </button>
               <button
                 onClick={() => setPendingRerun(false)}
-                className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400"
+                className="focus-ring rounded px-1 text-xs text-stone-600 dark:text-stone-400"
               >
                 Cancel
               </button>
@@ -602,7 +665,7 @@ export default function Settings() {
             <span className="block text-sm font-medium text-red-600 dark:text-red-400 group-active:scale-[0.98] origin-left transition-transform">
               Re-run Onboarding
             </span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <span className="block text-xs text-stone-500 dark:text-stone-400 mt-0.5">
               Wipes memories and restarts the intake. Audit, key, and catalog stay.
             </span>
           </button>
@@ -659,13 +722,13 @@ export default function Settings() {
 
         {catalogRefreshing && catalogProgress && (
           <div className="px-4 py-2.5">
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+            <div className="flex justify-between text-xs text-stone-500 dark:text-stone-400 mb-1.5">
               <span>Fetching {catalogProgress.label}</span>
               <span>
                 {catalogProgress.done} / {catalogProgress.total}
               </span>
             </div>
-            <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-fordham-maroon dark:bg-fordham-maroon-ink rounded-full transition-all duration-200 ease-spring"
                 style={{
@@ -731,15 +794,15 @@ export default function Settings() {
         }
       >
         {!auditText ? (
-          <div className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+          <div className="px-4 py-3 text-xs text-stone-500 dark:text-stone-400">
             No audit captured yet. Visit your DegreeWorks page.
           </div>
         ) : showAudit ? (
-          <pre className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto">
+          <pre className="px-4 py-3 text-xs text-stone-700 dark:text-stone-300 whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto">
             {auditText}
           </pre>
         ) : (
-          <div className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+          <div className="px-4 py-3 text-xs text-stone-500 dark:text-stone-400">
             {auditText.substring(0, 120).trim()}…
           </div>
         )}
@@ -755,7 +818,7 @@ export default function Settings() {
           <div
             role="radiogroup"
             aria-label="Theme"
-            className="flex rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5"
+            className="flex rounded-lg bg-stone-100 dark:bg-stone-800 p-0.5"
           >
             {(["light", "system", "dark"] as const).map((option) => (
               <button
@@ -765,8 +828,8 @@ export default function Settings() {
                 onClick={() => selectTheme(option)}
                 className={`focus-ring flex-1 rounded-md text-xs font-medium py-1.5 capitalize transition-all duration-200 ease-spring active:scale-95 ${
                   theme === option
-                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-50 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                    ? "bg-white dark:bg-stone-600 text-stone-900 dark:text-stone-50 shadow-sm"
+                    : "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200"
                 }`}
               >
                 {option}
@@ -778,7 +841,7 @@ export default function Settings() {
 
       {/* About — footer-only, like the fine print at the bottom of an iOS
           settings page. */}
-      <p className="px-4 pb-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+      <p className="px-4 pb-2 text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
         RamPlan reads your DegreeWorks audit and uses Claude AI (Sonnet for
         chat, Haiku for profile extraction) to help you plan your courses.
         All data is stored locally in your browser.
@@ -806,16 +869,16 @@ function Section({
   return (
     <section>
       <div className="flex items-center justify-between px-4 mb-1.5">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
           {label}
         </h2>
         {labelAction}
       </div>
-      <div className="rounded-2xl bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden">
+      <div className="rounded-2xl bg-white dark:bg-stone-900 divide-y divide-stone-100 dark:divide-stone-800 overflow-hidden">
         {children}
       </div>
       {footer && (
-        <p className="px-4 mt-1.5 text-xs text-gray-500 dark:text-gray-400 leading-snug">
+        <p className="px-4 mt-1.5 text-xs text-stone-500 dark:text-stone-400 leading-snug">
           {footer}
         </p>
       )}

@@ -1,3 +1,4 @@
+// Implements: ADR 0032 (type-chip palette shared via memoryTypeStyles)
 // MOVED from AuditChat.tsx unchanged in structure (ADR 0024's move-don't-
 // rewrite step) — this is the best-designed thing in the codebase and the
 // structure stays. Three surface fixes only:
@@ -14,18 +15,10 @@
 // system event, not the model's voice. The wrap-up message (Bubble B) streams
 // in afterward as a normal assistant message.
 
-import type { SystemActionItem, MemoryType } from "../../shared/types";
-
-const SYSTEM_ACTION_TYPE_STYLE: Record<
-  MemoryType,
-  { label: string; bg: string; text: string }
-> = {
-  interest: { label: "INTEREST", bg: "bg-purple-100 dark:bg-purple-900/40", text: "text-purple-800 dark:text-purple-200" },
-  constraint: { label: "CONSTRAINT", bg: "bg-amber-100 dark:bg-amber-900/40", text: "text-amber-800 dark:text-amber-200" },
-  goal: { label: "GOAL", bg: "bg-blue-100 dark:bg-blue-900/40", text: "text-blue-800 dark:text-blue-200" },
-  decision: { label: "DECISION", bg: "bg-green-100 dark:bg-green-900/40", text: "text-green-800 dark:text-green-200" },
-  note: { label: "NOTE", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-700 dark:text-gray-300" },
-};
+import type { SystemActionItem } from "../../shared/types";
+// The type-chip palette moved to memoryTypeStyles.ts (ADR 0032) so the
+// Settings memory list wears the same colors as this bubble.
+import { memoryTypeStyle } from "./memoryTypeStyles";
 
 export default function OnboardingSavesBubble({
   items,
@@ -54,13 +47,13 @@ export default function OnboardingSavesBubble({
         </p>
       </div>
       {items.length === 0 ? (
-        <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+        <p className="text-xs text-stone-600 dark:text-stone-400 italic">
           Nothing to save — we'll still get you set up.
         </p>
       ) : (
         <ul className="space-y-1.5">
           {items.map((item, i) => {
-            const style = SYSTEM_ACTION_TYPE_STYLE[item.type] ?? SYSTEM_ACTION_TYPE_STYLE.note;
+            const style = memoryTypeStyle(item.type);
             return (
               <li key={i} className="flex items-start gap-2 text-[12px]">
                 <span
@@ -68,7 +61,7 @@ export default function OnboardingSavesBubble({
                   className={
                     item.status === "saved"
                       ? "text-green-700 dark:text-green-400 mt-[1px]"
-                      : "text-gray-400 dark:text-gray-600 mt-[1px]"
+                      : "text-stone-400 dark:text-stone-600 mt-[1px]"
                   }
                 >
                   {item.status === "saved" ? "✓" : "·"}
@@ -80,12 +73,12 @@ export default function OnboardingSavesBubble({
                     >
                       {style.label}
                     </span>
-                    <span className="text-gray-800 dark:text-gray-200 font-medium break-words">
+                    <span className="text-stone-800 dark:text-stone-200 font-medium break-words">
                       {item.description}
                     </span>
                   </div>
                   {item.sourceQuote && (
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 pl-2 border-l-2 border-gray-300 dark:border-gray-600 break-words">
+                    <div className="text-xs text-stone-600 dark:text-stone-400 mt-1 pl-2 border-l-2 border-stone-300 dark:border-stone-600 break-words">
                       you said: “{item.sourceQuote}”
                     </div>
                   )}
