@@ -90,7 +90,7 @@ Every shaping decision is captured as an ADR under [`notes/decisions/`](notes/de
 |---|-------|
 | [0001](notes/decisions/0001-fork-registration-helper-drop-python.md) | Fork NickTrinh/registration-helper; drop the Python approach |
 | [0002](notes/decisions/0002-degreeworks-json-api-not-html-scraping.md) | Use DegreeWorks JSON API, not HTML scraping |
-| [0003](notes/decisions/0003-service-worker-owns-api-calls.md) | Service worker owns all third-party API calls · Amended by 0016 |
+| [0003](notes/decisions/0003-service-worker-owns-api-calls.md) | Service worker owns all third-party API calls · Amended by 0016, 0019 |
 | [0004](notes/decisions/0004-cookie-auth-credentials-include.md) | Cookie-based auth via `credentials: "include"` |
 | [0005](notes/decisions/0005-dispatch-on-symbolic-name-not-numeric-nodetype.md) | Dispatch on symbolic `.name` / `.ruleType`, not numeric `nodeType` |
 | [0006](notes/decisions/0006-unified-post-audit-for-whatif-and-lookahead.md) | Unified POST `/api/audit` for What-If and Look-Ahead |
@@ -105,6 +105,8 @@ Every shaping decision is captured as an ADR under [`notes/decisions/`](notes/de
 | [0015](notes/decisions/0015-memory-source-attribution.md) | Memory source attribution (verbatim "you said: ..." quotes) |
 | [0016](notes/decisions/0016-cors-carveout-for-whatif-proxy.md) | CORS carveout: proxy What-If POST through the DegreeWorks tab |
 | [0017](notes/decisions/0017-retrospective.md) | Retrospective — what we'd keep, rebuild, and what surprised us |
+| [0018](notes/decisions/0018-anonymized-fixtures-offline-test-loop.md) | Committed anonymized fixtures + offline test loop (PII boundary now machine-checked) |
+| [0019](notes/decisions/0019-tool-registry-agent-layer-decomposition.md) | Tool registry + agent-layer decomposition · Amends 0003 |
 
 See [`notes/decisions/README.md`](notes/decisions/README.md) for why the project uses ADRs and how to read them.
 
@@ -141,7 +143,7 @@ registration-agent/
 ├── notes/
 │   ├── TESTING.md                        # demo walkthrough
 │   ├── degreeworks-api-reference.md      # reverse-engineered Ellucian DegreeWorks JSON API reference
-│   └── decisions/                        # 17 ADRs — the reasoning behind every shaping decision
+│   └── decisions/                        # 19 ADRs — the reasoning behind every shaping decision
 └── src/
     ├── background/                       # service worker (orchestrator + API clients + memory + curator)
     ├── content/                          # content script (~10 lines, pings the worker on DW load)
