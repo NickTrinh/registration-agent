@@ -1,11 +1,11 @@
 {
-  "_comment": "FABRICATED test fixture — NOT real registration data. One Banner SSB searchResults page envelope (see SearchResultsResponse + BannerSection in src/background/agent/banner-ssb-client.ts). Exercises banner-to-course.ts: overlapping meeting times between CRN 10001 and 10002 (both MWF 14:30-15:45), an attribute-carrying section (CRN 10004: AMER+ICC), an async-online section (CRN 10009), and a creditHours-null section that falls back to creditHourLow (CRN 10007). The envelope-level ztcEncodedImage blob is present so the mapper-output test can assert it never reaches a Course. See ADR 0018.",
+  "_comment": "FABRICATED test fixture \u2014 NOT real registration data. One Banner SSB searchResults page envelope (see SearchResultsResponse + BannerSection in src/background/agent/banner-ssb-client.ts). Exercises banner-to-course.ts: overlapping meeting times between CRN 10001 and 10002 (both MWF 14:30-15:45), an attribute-carrying section (CRN 10004: AMER+ICC), an async-online section (CRN 10009), and a creditHours-null section that falls back to creditHourLow (CRN 10007). The envelope-level ztcEncodedImage blob is present so the mapper-output test can assert it never reaches a Course. See ADR 0018.",
   "success": true,
-  "totalCount": 10,
+  "totalCount": 11,
   "pageOffset": 0,
   "pageMaxSize": 500,
-  "sectionsFetchedCount": 10,
-  "ztcEncodedImage": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMEAYEE... (fabricated 50kB ZTC badge stub — stripped before persistence)",
+  "sectionsFetchedCount": 11,
+  "ztcEncodedImage": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMEAYEE... (fabricated 50kB ZTC badge stub \u2014 stripped before persistence)",
   "data": [
     {
       "id": 1,
@@ -29,7 +29,12 @@
       "instructionalMethod": "F2F",
       "instructionalMethodDescription": "Face to Face",
       "openSection": true,
-      "faculty": [{ "displayName": "Smith, John", "primaryIndicator": true }],
+      "faculty": [
+        {
+          "displayName": "Smith, John",
+          "primaryIndicator": true
+        }
+      ],
       "meetingsFaculty": [
         {
           "meetingTime": {
@@ -74,7 +79,12 @@
       "instructionalMethod": "F2F",
       "instructionalMethodDescription": "Face to Face",
       "openSection": true,
-      "faculty": [{ "displayName": "Lee, Ann", "primaryIndicator": true }],
+      "faculty": [
+        {
+          "displayName": "Lee, Ann",
+          "primaryIndicator": true
+        }
+      ],
       "meetingsFaculty": [
         {
           "meetingTime": {
@@ -119,7 +129,12 @@
       "instructionalMethod": "F2F",
       "instructionalMethodDescription": "Face to Face",
       "openSection": false,
-      "faculty": [{ "displayName": "Nguyen, Binh", "primaryIndicator": true }],
+      "faculty": [
+        {
+          "displayName": "Nguyen, Binh",
+          "primaryIndicator": true
+        }
+      ],
       "meetingsFaculty": [
         {
           "meetingTime": {
@@ -164,7 +179,12 @@
       "instructionalMethod": "F2F",
       "instructionalMethodDescription": "Face to Face",
       "openSection": true,
-      "faculty": [{ "displayName": "Garcia, Maria", "primaryIndicator": true }],
+      "faculty": [
+        {
+          "displayName": "Garcia, Maria",
+          "primaryIndicator": true
+        }
+      ],
       "meetingsFaculty": [
         {
           "meetingTime": {
@@ -186,8 +206,14 @@
         }
       ],
       "sectionAttributes": [
-        { "code": "AMER", "description": "American Pluralism" },
-        { "code": "ICC", "description": "Interdisciplinary Capstone Core" }
+        {
+          "code": "AMER",
+          "description": "American Pluralism"
+        },
+        {
+          "code": "ICC",
+          "description": "Interdisciplinary Capstone Core"
+        }
       ]
     },
     {
@@ -212,7 +238,12 @@
       "instructionalMethod": "F2F",
       "instructionalMethodDescription": "Face to Face",
       "openSection": true,
-      "faculty": [{ "displayName": "Okafor, Chidi", "primaryIndicator": true }],
+      "faculty": [
+        {
+          "displayName": "Okafor, Chidi",
+          "primaryIndicator": true
+        }
+      ],
       "meetingsFaculty": [
         {
           "meetingTime": {
@@ -257,7 +288,12 @@
       "instructionalMethod": "F2F",
       "instructionalMethodDescription": "Face to Face",
       "openSection": true,
-      "faculty": [{ "displayName": "Okafor, Chidi", "primaryIndicator": true }],
+      "faculty": [
+        {
+          "displayName": "Okafor, Chidi",
+          "primaryIndicator": true
+        }
+      ],
       "meetingsFaculty": [
         {
           "meetingTime": {
@@ -302,7 +338,12 @@
       "instructionalMethod": "F2F",
       "instructionalMethodDescription": "Face to Face",
       "openSection": false,
-      "faculty": [{ "displayName": "Patel, Rina", "primaryIndicator": true }],
+      "faculty": [
+        {
+          "displayName": "Patel, Rina",
+          "primaryIndicator": true
+        }
+      ],
       "meetingsFaculty": [
         {
           "meetingTime": {
@@ -323,7 +364,12 @@
           }
         }
       ],
-      "sectionAttributes": [{ "code": "NESY", "description": "Systems/Computational Neuroscience" }]
+      "sectionAttributes": [
+        {
+          "code": "NESY",
+          "description": "Systems/Computational Neuroscience"
+        }
+      ]
     },
     {
       "id": 8,
@@ -347,7 +393,12 @@
       "instructionalMethod": "F2F",
       "instructionalMethodDescription": "Face to Face",
       "openSection": true,
-      "faculty": [{ "displayName": "Weiss, Daniel", "primaryIndicator": true }],
+      "faculty": [
+        {
+          "displayName": "Weiss, Daniel",
+          "primaryIndicator": true
+        }
+      ],
       "meetingsFaculty": [
         {
           "meetingTime": {
@@ -392,7 +443,12 @@
       "instructionalMethod": "ONL",
       "instructionalMethodDescription": "Online",
       "openSection": true,
-      "faculty": [{ "displayName": "Rossi, Elena", "primaryIndicator": true }],
+      "faculty": [
+        {
+          "displayName": "Rossi, Elena",
+          "primaryIndicator": true
+        }
+      ],
       "meetingsFaculty": [
         {
           "meetingTime": {
@@ -437,7 +493,12 @@
       "instructionalMethod": "F2F",
       "instructionalMethodDescription": "Face to Face",
       "openSection": true,
-      "faculty": [{ "displayName": "Muller, Hans", "primaryIndicator": true }],
+      "faculty": [
+        {
+          "displayName": "Muller, Hans",
+          "primaryIndicator": true
+        }
+      ],
       "meetingsFaculty": [
         {
           "meetingTime": {
@@ -458,7 +519,140 @@
           }
         }
       ],
-      "sectionAttributes": [{ "code": "EP1", "description": "Eloquentia Perfecta 1" }]
+      "sectionAttributes": [
+        {
+          "code": "EP1",
+          "description": "Eloquentia Perfecta 1"
+        }
+      ]
+    },
+    {
+      "id": 267192,
+      "term": "202710",
+      "termDesc": "Fall 2026",
+      "courseReferenceNumber": "41813",
+      "partOfTerm": "PCR",
+      "courseNumber": "1331",
+      "courseDisplay": "1331",
+      "subject": "CHEM",
+      "subjectDescription": "Chemistry and Biochemistry",
+      "sequenceNumber": "E02",
+      "campusDescription": "Rose Hill",
+      "scheduleTypeDescription": "Lab",
+      "courseTitle": "General Chemistry Lab I",
+      "creditHours": null,
+      "maximumEnrollment": 22,
+      "enrollment": 22,
+      "seatsAvailable": 0,
+      "waitCapacity": 0,
+      "waitCount": 0,
+      "waitAvailable": 0,
+      "crossList": null,
+      "crossListCapacity": null,
+      "crossListCount": null,
+      "crossListAvailable": null,
+      "creditHourHigh": null,
+      "creditHourLow": 2,
+      "creditHourIndicator": null,
+      "openSection": false,
+      "linkIdentifier": null,
+      "isSectionLinked": false,
+      "subjectCourse": "CHEM1331",
+      "faculty": [
+        {
+          "bannerId": "[ID]",
+          "category": null,
+          "class": "net.hedtech.banner.student.faculty.FacultyResultDecorator",
+          "courseReferenceNumber": "41813",
+          "displayName": "[NAME]",
+          "emailAddress": "[EMAIL]",
+          "primaryIndicator": true,
+          "term": "202710"
+        }
+      ],
+      "meetingsFaculty": [
+        {
+          "category": "01",
+          "class": "net.hedtech.banner.student.schedule.SectionSessionDecorator",
+          "courseReferenceNumber": "41813",
+          "faculty": [],
+          "meetingTime": {
+            "beginTime": "0830",
+            "building": "JMH",
+            "buildingDescription": "John Mulcahy Hall",
+            "campus": "R",
+            "campusDescription": "Rose Hill",
+            "category": "01",
+            "class": "net.hedtech.banner.general.overall.MeetingTimeDecorator",
+            "courseReferenceNumber": "41813",
+            "creditHourSession": 2.0,
+            "endDate": "12/18/2026",
+            "endTime": "0920",
+            "friday": false,
+            "hoursWeek": 0.83,
+            "meetingScheduleType": "LAB",
+            "meetingType": "CLAS",
+            "meetingTypeDescription": "Class",
+            "monday": false,
+            "room": "120",
+            "saturday": true,
+            "startDate": "08/26/2026",
+            "sunday": false,
+            "term": "202710",
+            "thursday": false,
+            "tuesday": false,
+            "wednesday": false
+          },
+          "term": "202710"
+        },
+        {
+          "category": "01",
+          "class": "net.hedtech.banner.student.schedule.SectionSessionDecorator",
+          "courseReferenceNumber": "41813",
+          "faculty": [],
+          "meetingTime": {
+            "beginTime": "0930",
+            "building": null,
+            "buildingDescription": null,
+            "campus": null,
+            "campusDescription": null,
+            "category": "01",
+            "class": "net.hedtech.banner.general.overall.MeetingTimeDecorator",
+            "courseReferenceNumber": "41813",
+            "creditHourSession": 0.0,
+            "endDate": "12/18/2026",
+            "endTime": "1220",
+            "friday": false,
+            "hoursWeek": 2.83,
+            "meetingScheduleType": "LAB",
+            "meetingType": "CLAS",
+            "meetingTypeDescription": "Class",
+            "monday": false,
+            "room": null,
+            "saturday": true,
+            "startDate": "08/26/2026",
+            "sunday": false,
+            "term": "202710",
+            "thursday": false,
+            "tuesday": false,
+            "wednesday": false
+          },
+          "term": "202710"
+        }
+      ],
+      "reservedSeatSummary": null,
+      "sectionAttributes": [
+        {
+          "class": "net.hedtech.banner.student.schedule.SectionDegreeProgramAttributeDecorator",
+          "code": "ZLB3",
+          "courseReferenceNumber": "41813",
+          "description": "Lab Fee $75",
+          "isZTCAttribute": false,
+          "termCode": "202710"
+        }
+      ],
+      "instructionalMethod": null,
+      "instructionalMethodDescription": null
     }
   ]
 }

@@ -3,7 +3,7 @@
 // Banner returns one row per section. We group by `subjectCourse` (e.g. "CISC2010")
 // so one Course can hold many Sections. Banner quirks handled here:
 //   - `creditHours` is frequently null; real credit count lives in `creditHourLow`
-//   - meeting days are 7 separate booleans; we collapse to Day[] ("M" "T" "W" "R" "F")
+//   - meeting days are 7 separate booleans; we collapse to Day[] ("M" "T" "W" "R" "F" "S" "U")
 //   - times are "1430" not "14:30"; we reformat for display
 //   - instructor is an array; we take the primary, or first, or "TBA"
 //   - deliveryMode is inferred from campusDescription + scheduleTypeDescription
@@ -16,6 +16,8 @@ function formatTime(raw: string | null): string {
   return `${raw.slice(0, 2)}:${raw.slice(2)}`;
 }
 
+// Implements: ADR 0023 — Banner exposes all 7 days as booleans; we map every
+// one (weekend sections are real at Fordham), not just the weekday five.
 function daysFromMeeting(mt: BannerMeetingFaculty["meetingTime"]): Day[] {
   const days: Day[] = [];
   if (mt.monday) days.push("M");
@@ -23,6 +25,8 @@ function daysFromMeeting(mt: BannerMeetingFaculty["meetingTime"]): Day[] {
   if (mt.wednesday) days.push("W");
   if (mt.thursday) days.push("R");
   if (mt.friday) days.push("F");
+  if (mt.saturday) days.push("S");
+  if (mt.sunday) days.push("U");
   return days;
 }
 

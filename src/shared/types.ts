@@ -42,7 +42,10 @@ export interface MeetingTime {
   room: string;
 }
 
-export type Day = "M" | "T" | "W" | "R" | "F";
+// M–F plus weekends: S = Saturday, U = Sunday (registrar convention, matching
+// R = Thursday). Fordham does schedule Saturday sections; dropping them breaks
+// the schedule-conflict checker. See ADR 0023.
+export type Day = "M" | "T" | "W" | "R" | "F" | "S" | "U";
 
 // ─── AI Conversation ──────────────────────────────────────────────────────────
 
