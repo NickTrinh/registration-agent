@@ -101,7 +101,12 @@ export async function handleAIChat(
   // AI_DONE) can see the assistant's final text blocks.
   let finalMessage: Anthropic.Messages.Message | null = null;
 
-  try {
+  // The multi-round tool loop, hoisted into a closure so the WHOLE loop can sit
+  // inside one withKeepalive() (see the call below). Mutates `convo`; returns
+  // Claude's last message, or null if the loop never ran.
+  const runToolRounds = async (): Promise<Anthropic.Messages.Message | null> => {
+    let lastMessage: Anthropic.Messages.Message | null = null;
+
     // Cap at 5 tool-use rounds per user turn — generous but prevents runaway.
     for (let round = 0; round < 5; round++) {
       const stream = await client.messages.stream(
@@ -122,7 +127,7 @@ export async function handleAIChat(
       }
 
       const final = await stream.finalMessage();
-      finalMessage = final;
+      lastMessage = final;
 
       if (final.stop_reason !== "tool_use") break;
 
@@ -169,10 +174,26 @@ export async function handleAIChat(
             content: resultJson,
           });
         } catch (err) {
+          const reason = err instanceof Error ? err.message : String(err);
+
+          // Terminal event for the UI chip. Without it `courseCount` stays
+          // undefined and the chip renders "searching…" for the rest of the
+          // session — even though the tool already failed and the model has
+          // moved on. `courseCount: 0` is the sidebar's chip-resolved marker,
+          // NOT a claim of zero results: when `error` is present the count is
+          // meaningless and the chip must render a failed state.
+          if (!isSilentTool) {
+            deps.broadcast({
+              type: "AI_TOOL_RESULT",
+              name: block.name,
+              courseCount: 0,
+              error: reason,
+            });
+          }
           toolResults.push({
             type: "tool_result",
             tool_use_id: block.id,
-            content: `Error: ${err instanceof Error ? err.message : String(err)}`,
+            content: `Error: ${reason}`,
             is_error: true,
           });
         }
@@ -180,6 +201,17 @@ export async function handleAIChat(
 
       convo.push({ role: "user", content: toolResults });
     }
+
+    return lastMessage;
+  };
+
+  try {
+    // Keepalive spans the ENTIRE round loop. A tool-only round emits no
+    // text_delta, so nothing resets Chrome's ~30s MV3 idle timer and the worker
+    // can be killed mid-loop — the student's turn vanishes with no error.
+    // withKeepalive clears its interval in a `finally`, so the throw paths
+    // below (abort, API error) can't leak it.
+    finalMessage = await withKeepalive(runToolRounds());
 
     // Surface loop-exit conditions the student would otherwise not see. These
     // deltas append to the streamed text before AI_DONE closes the turn.
@@ -189,12 +221,12 @@ export async function handleAIChat(
       deps.broadcast({
         type: "AI_CHUNK",
         delta:
-          "\n\n*(I hit my per-turn tool limit — ask me to continue and I'll pick up where I left off.)",
+          "\n\n*(I hit my per-turn tool limit — ask me to continue and I'll pick up where I left off.)*",
       });
     } else if (finalMessage?.stop_reason === "max_tokens") {
       deps.broadcast({
         type: "AI_CHUNK",
-        delta: '\n\n*(Response was cut short — say "continue" for the rest.)',
+        delta: '\n\n*(Response was cut short — say "continue" for the rest.)*',
       });
     }
 

@@ -42,8 +42,41 @@ describe("buildWhatIfGoals", () => {
     ]);
   });
 
+  // Look-Ahead (ADR 0006): classes-only is the same unified endpoint with the
+  // student's REAL curriculum in `goals` and hypotheticals in `classes`.
+  it("accepts a classes-only look-ahead, keeping the current curriculum", () => {
+    const result = buildWhatIfGoals({ classes: ["PSYC 3110", "PSYC 4200"] }, CURRENT);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.goals).toEqual([
+      { code: "MAJOR", value: "NEUR" },
+      { code: "CONC", value: "NESY" },
+      { code: "COLLEGE", value: "FC" },
+    ]);
+  });
+
+  it("accepts a curriculum swap combined with a look-ahead", () => {
+    const result = buildWhatIfGoals({ minor: "PHIL", classes: ["PHIL 1000"] }, CURRENT);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.goals).toEqual([
+      { code: "MAJOR", value: "NEUR" },
+      { code: "MINOR", value: "PHIL" },
+      { code: "CONC", value: "NESY" },
+      { code: "COLLEGE", value: "FC" },
+    ]);
+  });
+
   it("rejects an empty (no-op) request", () => {
     const result = buildWhatIfGoals({}, CURRENT);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain("at least one");
+  });
+
+  // An empty `classes` array is still a no-op, not a look-ahead.
+  it("rejects a request whose only field is an empty classes array", () => {
+    const result = buildWhatIfGoals({ classes: [] }, CURRENT);
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toContain("at least one");

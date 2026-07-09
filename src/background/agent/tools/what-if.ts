@@ -84,11 +84,19 @@ export function buildWhatIfGoals(
   // Refuse a truly empty What-If (no user-specified changes). Otherwise the
   // request is just the student's current curriculum, which gives no new
   // info and wastes a round-trip.
-  if (!input.major && !input.minor && !input.concentration && !input.college) {
+  //
+  // A classes-only request is NOT empty: it's the Look-Ahead mode of the same
+  // unified endpoint (ADR 0006) — current curriculum in `goals`, hypothetical
+  // courses in `classes`. "What if I take these three courses?" is a supported
+  // shape and must reach the endpoint.
+  const swapsCurriculum = !!(input.major || input.minor || input.concentration || input.college);
+  const looksAhead = (input.classes?.length ?? 0) > 0;
+  if (!swapsCurriculum && !looksAhead) {
     return {
       ok: false,
       error:
-        "Error: What-If needs at least one of major, minor, concentration, or college to swap — otherwise it's identical to the real audit.",
+        "Error: What-If needs at least one of major, minor, concentration, or college to swap — " +
+        "or a list of hypothetical classes to look ahead at. Otherwise it's identical to the real audit.",
     };
   }
 
@@ -179,12 +187,14 @@ const WHAT_IF_AUDIT_TOOL = {
   description:
     "Run a hypothetical What-If audit against the student's real DegreeWorks data to show " +
     "how their degree progress would change under a different major, minor, or concentration. " +
-    "Provide AT LEAST ONE of major / minor / concentration — whichever the student is asking about. " +
+    "Provide AT LEAST ONE of major / minor / concentration / classes — whichever the student is asking about. " +
     "Map the student's phrasing to the right field: " +
     "\"added/exploring a philosophy MINOR\" → pass { minor: 'PHIL' } (do NOT pass a major — " +
     "the real major is kept automatically). " +
     "\"switched to psychology\" → pass { major: 'PSYC' }. " +
     "\"added the XYZ concentration\" → pass { concentration: 'XYZ' }. " +
+    "\"what if I take PSYC 3110 and PSYC 4200 next term?\" → pass { classes: ['PSYC 3110', 'PSYC 4200'] } " +
+    "with no curriculum fields (Look-Ahead; the real curriculum is kept automatically). " +
     "Passing only the current major with nothing else is a NO-OP — don't do that. " +
     "Returns a full plain-text audit under the hypothetical scenario; compare against the " +
     "real audit in your system prompt and describe the differences.",
