@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { prefersReducedMotion } from "../theme";
 import { conversationalOnly } from "../../shared/types";
 import type {
@@ -9,6 +7,10 @@ import type {
   SystemActionItem,
   MemoryType,
 } from "../../shared/types";
+import Message from "../components/Message";
+import Notice from "../components/Notice";
+import StatusStrip from "../components/StatusStrip";
+import FirstRun, { DEGREEWORKS_URL } from "../components/FirstRun";
 
 const SUGGESTIONS = [
   "What do I still need to graduate?",
@@ -17,68 +19,33 @@ const SUGGESTIONS = [
   "How many credits do I have left?",
 ];
 
-// Rotating thinking phrases — shown with a spinner while Sonnet is reasoning
-// between the user's message and the first visible output (text stream or
-// tool chip). Mixes silly-whimsical with Fordham-domain flavor so it reads as
-// characterful without looking unserious.
+// Implements: ADR 0024 — the advisor tells the truth about what it's doing.
+// When a tool call is awaiting its result the indicator reports THAT (see
+// TOOL_PHRASES); this rotating list covers only the pure-reasoning gap, and
+// it stays in the registrar's world — personality through specificity.
 const THINKING_PHRASES = [
-  "Pondering",
-  "Scheming",
-  "Cogitating",
   "Consulting the audit",
-  "Flipping through requirements",
-  "Squinting at course codes",
-  "Deliberating",
-  "Noodling",
-  "Ruminating",
   "Cross-checking blocks",
+  "Flipping through requirements",
   "Wrangling credits",
-  "Thinking",
-  "Cracking the knuckles",
+  "Squinting at course codes",
+  "Reading the core's fine print",
+  "Counting your credits twice",
+  "Petitioning the registrar",
+  "Comparing section times",
   "Channeling your advisor",
 ];
 
-function describeSearch(input: Record<string, unknown>): string {
-  const parts: string[] = [];
-  if (input.course_code) parts.push(String(input.course_code));
-  if (input.subject) parts.push(String(input.subject));
-  if (input.min_number && input.max_number)
-    parts.push(`${input.min_number}–${input.max_number}`);
-  else if (input.min_number) parts.push(`≥${input.min_number}`);
-  else if (input.max_number) parts.push(`≤${input.max_number}`);
-  if (input.keyword) parts.push(`"${input.keyword}"`);
-  if (Array.isArray(input.days) && input.days.length > 0)
-    parts.push(input.days.join(""));
-  if (Array.isArray(input.attributes) && input.attributes.length > 0)
-    parts.push(input.attributes.map((a) => String(a)).join("+"));
-  if (input.has_seats) parts.push("open seats");
-  return parts.length > 0 ? parts.join(" · ") : "catalog";
-}
-
-// Substitute privacy placeholders emitted by the PII-free audit renderer.
-// The audit text sent to Anthropic contains [NAME], [ADVISOR], and
-// [ADVISOR_EMAIL] instead of identifying fields, and Claude is told to echo
-// those tokens verbatim. We swap them back here at render time so the chat
-// feels personal without identifying data ever leaving the extension.
-//
-// Fallbacks:
-//   [NAME] → "you" if the first name isn't available.
-//   [ADVISOR] → "your advisor" if the advisor name wasn't on the audit.
-//   [ADVISOR_EMAIL] → "advisor email not provided" desync fallback.
-// All three real values live in chrome.storage.local (studentFirstName,
-// studentAdvisorName, studentAdvisorEmail) and are populated only by the
-// service worker's refreshAudit path — client-side, never sent outbound.
-function personalize(
-  text: string,
-  firstName: string | null,
-  advisorEmail: string | null,
-  advisorName: string | null
-): string {
-  return text
-    .replaceAll("[NAME]", firstName ?? "you")
-    .replaceAll("[ADVISOR]", advisorName ?? "your advisor")
-    .replaceAll("[ADVISOR_EMAIL]", advisorEmail ?? "advisor email not provided");
-}
+// What each tool is actually doing, in plain words. "Searching the catalog"
+// beats "Pondering" when it is literally searching the catalog.
+const TOOL_PHRASES: Record<string, string> = {
+  search_catalog: "Searching the catalog",
+  list_attributes: "Checking attribute codes",
+  recall_memory: "Recalling what I know",
+  save_memory: "Saving a memory",
+  forget_memory: "Updating my memory",
+  run_what_if: "Running a what-if audit",
+};
 
 const SESSION_KEY = "chat_messages";
 const ONBOARDING_MODE_KEY = "chat_onboarding_mode";
@@ -96,10 +63,29 @@ function persistSession(
   });
 }
 
-export default function AuditChat() {
+export default function AuditChat({
+  onOpenSettings,
+}: {
+  onOpenSettings: () => void;
+}) {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Turn-scoped system events (ADR 0026): errors and loop-exit notices are
+  // never advisor messages and never enter `messages` — they render as
+  // <Notice>s anchored under the thread. One slot each; cleared on next turn.
+  const [turnError, setTurnError] = useState<string | null>(null);
+  const [turnNotice, setTurnNotice] = useState<"tool-cap" | "truncated" | null>(null);
+
+  // FirstRun prerequisites, read from chrome.storage.local (the worker keeps
+  // both current) and live-tracked so checkmarks flip while the student sets
+  // up from the Settings tab.
+  const [hasKey, setHasKey] = useState(false);
+  const [catalogCount, setCatalogCount] = useState(0);
+  // Nothing paints in the empty state until the onboarding round-trips
+  // resolve — kills the suggestions→welcome-card flash on first launch.
+  const [welcomeDecided, setWelcomeDecided] = useState(false);
 
   const [auditText, setAuditText] = useState<string | null>(null);
   const [auditError, setAuditError] = useState<string | null>(null);
@@ -139,7 +125,7 @@ export default function AuditChat() {
   // the curator writes a memory (or Sonnet's save_memory tool fires in
   // normal mode). Auto-dismisses after 3s, replaced immediately by a new
   // one if another save fires before the timer. Keeps the chat uncluttered.
-  const [toast, setToast] = useState<{ id: number; emoji: string; text: string } | null>(null);
+  const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
   const toastCounter = useRef(0);
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -171,6 +157,26 @@ export default function AuditChat() {
       }
     );
 
+    // FirstRun prerequisites + status-strip course count.
+    chrome.storage.local.get(["anthropicApiKey", "catalogCourseCount"], (r) => {
+      setHasKey(typeof r.anthropicApiKey === "string" && r.anthropicApiKey.length > 0);
+      setCatalogCount((r.catalogCourseCount as number) ?? 0);
+    });
+    const onStorageChange = (
+      changes: { [k: string]: chrome.storage.StorageChange },
+      area: string
+    ) => {
+      if (area !== "local") return;
+      if (changes.anthropicApiKey) {
+        const v = changes.anthropicApiKey.newValue;
+        setHasKey(typeof v === "string" && v.length > 0);
+      }
+      if (changes.catalogCourseCount) {
+        setCatalogCount((changes.catalogCourseCount.newValue as number) ?? 0);
+      }
+    };
+    chrome.storage.onChanged.addListener(onStorageChange);
+
     // Restore chat session from chrome.storage.session (survives panel
     // close/reopen within the same browser session, clears on browser quit).
     chrome.storage.session.get(
@@ -183,6 +189,7 @@ export default function AuditChat() {
         setMessages(saved);
         if (savedMode) setOnboardingMode(true);
         if (savedShowContinue) setShowContinueButton(true);
+        setWelcomeDecided(true);
         return; // session has history — skip onboarding check
       }
 
@@ -195,9 +202,12 @@ export default function AuditChat() {
           if (count === 0 && completedAt === null) {
             setShowWelcomeCard(true);
           }
+          setWelcomeDecided(true);
         });
       });
     });
+
+    return () => chrome.storage.onChanged.removeListener(onStorageChange);
   }, []);
 
   // Persist messages to session storage whenever they change
@@ -307,17 +317,19 @@ export default function AuditChat() {
           }
           break;
         case "AI_ERROR":
-          // uiOnly: this bubble is OUR text, not the advisor's. Without the
-          // flag it persists in `messages` and gets replayed to Anthropic on
-          // every later turn — raw API error bodies entering the prompt path.
-          // Implements: ADR 0028.
-          setMessages((prev) => [...prev, {
-            role: "assistant",
-            content: `Error: ${message.error}`,
-            timestamp: new Date().toISOString(),
-            uiOnly: true,
-          }]);
+          // Never the advisor's voice: the raw error renders as a turn-scoped
+          // <Notice> below the thread, quoted in mono — and never enters
+          // `messages`, so nothing needs stripping before send. This is
+          // ADR 0028's Alternative B, adopted per its own revisit clause;
+          // the uiOnly flag it replaced is deleted, not left dangling.
+          // Implements: ADR 0026.
+          setTurnError(String(message.error ?? "Unknown error"));
           setLoading(false);
+          break;
+        case "AI_NOTICE":
+          // Loop-exit conditions (tool cap, truncation) — ours to say, not
+          // the advisor's. Implements: ADR 0026.
+          setTurnNotice(message.kind === "tool-cap" ? "tool-cap" : "truncated");
           break;
         case "AI_TOOL_USE":
           // complete_onboarding is handled by the ONBOARDING_SAVES_* broadcast
@@ -423,9 +435,8 @@ export default function AuditChat() {
           break;
         case "AI_CURATOR_SAVED": {
           const desc = typeof message.description === "string" ? message.description : "memory saved";
-          const emoji = message.kind === "promoted" ? "⬆️" : "💾";
           toastCounter.current += 1;
-          setToast({ id: toastCounter.current, emoji, text: desc });
+          setToast({ id: toastCounter.current, text: desc });
           break;
         }
         case "ONBOARDING_SAVES_START": {
@@ -583,15 +594,18 @@ export default function AuditChat() {
     setMessages(next);
     setInput("");
     setLoading(true);
+    // A new turn supersedes the previous turn's system events.
+    setTurnError(null);
+    setTurnNotice(null);
     // User is actively starting a new exchange — they should see their own
     // message and the incoming reply. Release any scroll-up lock so the
     // response auto-scrolls into view.
     scrollToBottomImmediately();
     // Only real conversational turns reach the model. systemAction bubbles
-    // (end-of-intake save list) and uiOnly bubbles (the "Error: ..." surface)
-    // are things the UI said, not things the advisor said or heard. One shared
-    // predicate owns this — see conversationalOnly() in shared/types.ts.
-    // Implements: ADR 0028.
+    // (end-of-intake save list) are things the UI said, not things the
+    // advisor said or heard; errors never enter `messages` at all (ADR 0026).
+    // One shared predicate owns this — see conversationalOnly() in
+    // shared/types.ts. Implements: ADR 0028.
     const forWorker = conversationalOnly(next);
     chrome.runtime.sendMessage({
       type: "AI_CHAT",
@@ -629,6 +643,25 @@ export default function AuditChat() {
     chrome.runtime.sendMessage({ type: "CANCEL_AI_CHAT" });
   }
 
+  // Re-dispatch the turn that just failed. The student's message is already
+  // in `messages` — Retry must NOT append a new user turn, only clear the
+  // error slot and send the same conversational history again. Implements:
+  // ADR 0026 (the Notice's action slot is the recovery path).
+  function retryTurn() {
+    if (loading) return;
+    setTurnError(null);
+    setTurnNotice(null);
+    setLoading(true);
+    scrollToBottomImmediately();
+    chrome.runtime.sendMessage({
+      type: "AI_CHAT",
+      messages: conversationalOnly(messages),
+      auditText: auditText ?? "",
+      profile: profile ?? "",
+      mode: onboardingMode ? "onboarding" : "normal",
+    });
+  }
+
   // Dismiss the end-of-intake gate and open the input for normal chat. The
   // onboarding mode flag already flipped to false when ONBOARDING_SAVES_DONE
   // arrived, so the next user message routes through the normal prompt.
@@ -644,31 +677,48 @@ export default function AuditChat() {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Status bar */}
-      <StatusBar
-        auditText={auditText}
-        auditError={auditError}
-        profile={profile}
-        profileLoading={profileLoading}
-      />
-
-      {auditExpired && (
-        <div className="mx-3 mt-2 p-3 rounded-lg bg-amber-50 border border-amber-300 text-xs text-amber-900">
-          <p className="font-semibold mb-1">DegreeWorks session expired</p>
-          <p className="mb-2">
-            Your Fordham session timed out. Open DegreeWorks and log in again,
-            then come back — the audit will refresh automatically.
-          </p>
-          <a
-            href="https://dw-prod.ec.fordham.edu/responsiveDashboard/worksheets/WEB31"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-block px-2 py-1 rounded bg-fordham-maroon text-white font-medium hover:bg-fordham-maroon/90"
-          >
-            Open DegreeWorks →
-          </a>
+      {/* Panel status — one surface, two treatments (ADR 0024): the healthy
+          path is a quiet 28px strip; anything with a severity renders as an
+          ambient <Notice> instead. Never both. The no-audit notice waits for
+          welcomeDecided so it doesn't flash while FirstRun (which contains
+          the same instruction as step 2) is still deciding whether to show. */}
+      {auditError ? (
+        <div className="mx-3 mt-2 shrink-0">
+          <Notice
+            severity="error"
+            title="Audit refresh failed"
+            body={auditError}
+            action={{ label: "Open DegreeWorks", href: DEGREEWORKS_URL }}
+          />
         </div>
-      )}
+      ) : auditExpired ? (
+        <div className="mx-3 mt-2 shrink-0">
+          <Notice
+            severity="warn"
+            title="DegreeWorks session expired — log in again and the audit refreshes itself"
+            action={{ label: "Open DegreeWorks", href: DEGREEWORKS_URL }}
+          />
+        </div>
+      ) : auditText ? (
+        <StatusStrip
+          text={
+            profileLoading
+              ? "Building your student profile…"
+              : catalogCount > 0
+                ? `Audit loaded · ${catalogCount.toLocaleString()} courses in catalog`
+                : "Audit loaded"
+          }
+          busy={loading || profileLoading}
+        />
+      ) : welcomeDecided && !showWelcomeCard ? (
+        <div className="mx-3 mt-2 shrink-0">
+          <Notice
+            severity="info"
+            title="No audit loaded — open DegreeWorks and it loads itself"
+            action={{ label: "Open DegreeWorks", href: DEGREEWORKS_URL }}
+          />
+        </div>
+      ) : null}
 
       {/* Messages — scrollContainerRef drives the user-lock scroll behavior.
           Wrapper is relative so the "↓ Jump to latest" button can sit
@@ -688,52 +738,39 @@ export default function AuditChat() {
         ref={scrollContainerRef}
         className="h-full overflow-y-auto p-3 space-y-3"
         role="log"
-        aria-live="polite"
+        // Muted while a turn streams: announcing every chunk (and every
+        // rotating phrase) is SR spam. AI_DONE flips loading off and the
+        // completed turn announces once. The sr-only "Advisor is thinking"
+        // covers the gap. Implements: ADR 0024.
+        aria-live={loading ? "off" : "polite"}
         aria-atomic="false"
         aria-label="Advisor conversation"
       >
-        {messages.length === 0 && showWelcomeCard && (
-          <div className="pt-4">
-            <div className="rounded-xl border border-fordham-maroon/30 bg-fordham-maroon/5 p-4">
-              <p className="text-base font-semibold text-fordham-maroon mb-2">
-                Let's get to know each other
-              </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                Before I start recommending courses, I'd like to ask a few quick
-                questions about what you're interested in, what you're aiming at,
-                and anything that shapes your schedule. Takes about 5 minutes,
-                and every answer makes future suggestions fit you better.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={startOnboarding}
-                  disabled={!auditText}
-                  className="flex-1 px-3 py-2 rounded-lg bg-fordham-maroon text-white text-sm font-medium hover:bg-fordham-maroon/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {auditText ? "Let's get started" : "Waiting for audit…"}
-                </button>
-                <button
-                  onClick={skipOnboarding}
-                  className="focus-ring px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  Skip for now
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* Empty states wait for welcomeDecided — nothing paints until the
+            onboarding round-trips resolve, killing the suggestions→FirstRun
+            flash on a fresh install. Implements: ADR 0024. */}
+        {messages.length === 0 && welcomeDecided && showWelcomeCard && (
+          <FirstRun
+            hasKey={hasKey}
+            hasAudit={!!auditText}
+            hasCatalog={catalogCount > 0}
+            onOpenSettings={onOpenSettings}
+            onStart={startOnboarding}
+            onSkip={skipOnboarding}
+          />
         )}
 
-        {messages.length === 0 && !showWelcomeCard && (
-          <div className="pt-4">
-            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
+        {messages.length === 0 && welcomeDecided && !showWelcomeCard && (
+          <div className="pt-4 animate-msg-in">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
               Ask anything about your degree requirements.
             </p>
-            <div className="grid grid-cols-1 gap-2">
+            <div className="divide-y divide-gray-100 dark:divide-gray-800 border-y border-gray-100 dark:border-gray-800">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
-                  className="focus-ring text-left px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-fordham-maroon dark:hover:border-fordham-maroon-ink transition-colors"
+                  className="focus-ring block w-full text-left px-1 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:text-fordham-maroon dark:hover:text-fordham-maroon-ink transition-colors"
                 >
                   {s}
                 </button>
@@ -743,7 +780,7 @@ export default function AuditChat() {
         )}
 
         {messages.map((msg, i) => (
-          <MessageBubble
+          <Message
             key={i}
             message={msg}
             firstName={firstName}
@@ -751,6 +788,36 @@ export default function AuditChat() {
             advisorName={advisorName}
           />
         ))}
+
+        {/* Turn-scoped system events (ADR 0026) — anchored under the turn
+            that produced them, never inside `messages`. One slot each. */}
+        {turnError && (
+          <Notice
+            severity="error"
+            title="The advisor couldn't respond"
+            body={turnError}
+            action={{ label: "Retry", onClick: retryTurn }}
+            onDismiss={() => setTurnError(null)}
+          />
+        )}
+        {turnNotice && (
+          <Notice
+            severity="info"
+            title={
+              turnNotice === "tool-cap"
+                ? "I hit my per-turn tool limit."
+                : "The response was cut short."
+            }
+            action={{
+              label: "Continue",
+              onClick: () => {
+                setTurnNotice(null);
+                sendMessage("Continue");
+              },
+            }}
+            onDismiss={() => setTurnNotice(null)}
+          />
+        )}
 
         {showContinueButton && (
           <div className="flex justify-center pt-2 pb-1">
@@ -764,40 +831,41 @@ export default function AuditChat() {
         )}
 
         {(() => {
-          // Show the spinner when loading and there's no visible output from
-          // Sonnet yet. Two cases:
-          //   1. Last message is the user's — Sonnet hasn't started emitting anything.
-          //   2. Last message is an assistant bubble with empty content and all
-          //      its tool events have completed — between tool rounds, waiting
-          //      for next tool or first text token.
+          // The panel's ONE waiting indicator (ADR 0024): a single derived
+          // phrase. If a tool call is awaiting its result, say what THAT tool
+          // is doing (TOOL_PHRASES); otherwise the rotating thinking phrase
+          // covers the pure-reasoning gap. Hidden the moment text streams —
+          // the growing prose is its own indicator.
           if (!loading) return null;
           const last = messages[messages.length - 1];
-          const isInitialWait = last?.role === "user";
-          const isBetweenRounds =
+          if (
             last?.role === "assistant" &&
-            last.content.trim() === "" &&
-            (last.toolEvents ?? []).every((e) => e.courseCount !== undefined);
-          if (!isInitialWait && !isBetweenRounds) return null;
+            !last.systemAction &&
+            last.content.trim() !== ""
+          ) {
+            return null;
+          }
+          const inFlight =
+            last?.role === "assistant" && !last.systemAction
+              ? (last.toolEvents ?? []).find(
+                  (e) => e.courseCount === undefined && e.error === undefined
+                )
+              : undefined;
+          const phrase = inFlight
+            ? TOOL_PHRASES[inFlight.name] ?? thinkingPhrase
+            : thinkingPhrase;
           return (
-            <div className="flex gap-2 items-start">
-              <div className="w-7 h-7 rounded-full bg-fordham-maroon flex items-center justify-center text-white text-xs shrink-0">AI</div>
-              <div className="inline-flex items-center gap-2 bg-gray-200 dark:bg-gray-700 rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
-                <span
-                  className="inline-block w-3 h-3 rounded-full border-2 border-fordham-maroon border-t-transparent animate-spin"
-                  aria-hidden
-                />
-                <span className="italic">{thinkingPhrase}…</span>
-              </div>
+            <div className="animate-msg-in">
+              <p
+                aria-hidden
+                className="text-[13px] italic text-gray-600 dark:text-gray-400"
+              >
+                {phrase}…
+              </p>
+              <span className="sr-only">Advisor is thinking</span>
             </div>
           );
         })()}
-        {loading && (
-          <div className="flex items-center gap-1 px-3 py-1" aria-label="Generating" aria-live="polite">
-            <span className="w-1.5 h-1.5 rounded-full bg-fordham-maroon animate-bounce [animation-delay:0ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-fordham-maroon animate-bounce [animation-delay:150ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-fordham-maroon animate-bounce [animation-delay:300ms]" />
-          </div>
-        )}
         <div ref={bottomRef} />
       </div>
       </div>
@@ -811,7 +879,6 @@ export default function AuditChat() {
             key={toast.id}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/50 border border-green-300 dark:border-green-700 text-xs text-green-900 dark:text-green-100 shadow-sm animate-toast-pop"
           >
-            <span>{toast.emoji}</span>
             <span className="font-medium">Memory saved:</span>
             <span className="truncate max-w-[220px]">{toast.text}</span>
           </div>
@@ -822,11 +889,19 @@ export default function AuditChat() {
           student reads the wrap-up + saved memories before the next turn. */}
       <div className="p-3 border-t border-gray-100 dark:border-gray-800 shrink-0">
         <div className="flex gap-2">
-          <input
-            type="text"
+          {/* field-sizing:content grows the box with the message up to ~5
+              lines; Enter sends, Shift+Enter breaks the line — the messenger
+              contract. Implements: ADR 0024. */}
+          <textarea
+            rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(input);
+              }
+            }}
             placeholder={
               showContinueButton
                 ? "Press Continue to start chat…"
@@ -834,7 +909,7 @@ export default function AuditChat() {
             }
             disabled={loading || showContinueButton}
             aria-label="Message the advisor"
-            className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:border-fordham-maroon disabled:opacity-50"
+            className="focus-ring flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm [field-sizing:content] max-h-36 resize-none disabled:opacity-50"
           />
           {loading ? (
             <button
@@ -859,343 +934,6 @@ export default function AuditChat() {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─── Status Bar ───────────────────────────────────────────────────────────────
-
-function StatusBar({
-  auditText,
-  auditError,
-  profile,
-  profileLoading,
-}: {
-  auditText: string | null;
-  auditError: string | null;
-  profile: string | null;
-  profileLoading: boolean;
-}) {
-  if (auditError) {
-    return (
-      <div className="mx-3 mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800">
-        <div className="font-medium mb-0.5">Audit refresh failed</div>
-        <div className="opacity-90 mb-1">{auditError}</div>
-        <div className="text-red-700">
-          Your session may have expired — try re-opening{" "}
-          <a
-            href="https://dw-prod.ec.fordham.edu/responsiveDashboard/worksheets/WEB31"
-            target="_blank"
-            rel="noreferrer"
-            className="underline font-medium"
-          >
-            DegreeWorks
-          </a>{" "}
-          and logging in again.
-        </div>
-      </div>
-    );
-  }
-
-  if (!auditText) {
-    return (
-      <div className="mx-3 mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-        No audit loaded. Visit your{" "}
-        <a
-          href="https://dw-prod.ec.fordham.edu/responsiveDashboard/worksheets/WEB31"
-          target="_blank"
-          rel="noreferrer"
-          className="underline font-medium"
-        >
-          DegreeWorks page
-        </a>{" "}
-        to load automatically.
-      </div>
-    );
-  }
-
-  if (profileLoading) {
-    return (
-      <div className="mx-3 mt-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 flex items-center gap-2">
-        <span className="animate-spin">⟳</span>
-        Building your student profile…
-      </div>
-    );
-  }
-
-  if (profile) {
-    // First line of the extracted profile — per buildProfileExtractionPrompt
-    // (prompts.ts) that is the `Classification: … | Major: … | Minor: … |
-    // Concentration: …` line. It carries NO name: the audit reaches Haiku
-    // already redacted (degreeworks-audit-to-text.ts emits `Student: [NAME]`)
-    // and the extraction template never asks for one. Don't re-document this
-    // as "Name | Year | …" — the old comment said that, and it fooled a
-    // reviewer into believing this bar leaked PII. See ADR 0009.
-    const firstLine = profile.split("\n")[0];
-    return (
-      <div className="mx-3 mt-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-800">
-        <span className="font-medium">Ready</span> — {firstLine}
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-3 mt-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-800">
-      Audit loaded — building profile…
-    </div>
-  );
-}
-
-// ─── Message Bubble ───────────────────────────────────────────────────────────
-
-function MessageBubble({
-  message,
-  firstName,
-  advisorEmail,
-  advisorName,
-}: {
-  message: ConversationMessage;
-  firstName: string | null;
-  advisorEmail: string | null;
-  advisorName: string | null;
-}) {
-  // System-action bubble (end-of-intake save batch). Rendered distinctly from
-  // AI prose — it's a UI event, not the model's voice. Takes over the whole
-  // row so it reads as a divider between the intake and the wrap-up.
-  if (message.systemAction?.kind === "onboarding-saves") {
-    return <OnboardingSavesBubble items={message.systemAction.items} done={message.systemAction.done} />;
-  }
-  const isUser = message.role === "user";
-  const toolEvents = message.toolEvents;
-  return (
-    <div className={`flex gap-2 items-start ${isUser ? "flex-row-reverse" : ""}`}>
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isUser ? "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400" : "bg-fordham-maroon text-white"}`}>
-        {isUser ? "You" : "AI"}
-      </div>
-      <div className="max-w-[85%] space-y-1">
-        {!isUser && toolEvents && toolEvents.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {toolEvents.map((ev, idx) => {
-              if (ev.name === "recall_memory") {
-                const ids = Array.isArray(ev.input.ids) ? ev.input.ids : [];
-                return (
-                  <div key={idx} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-50 border border-purple-200 text-[10px] text-purple-900">
-                    <span>🧠</span>
-                    <span className="font-medium">Recalling {ids.length > 0 ? ids.map((id: unknown) => `#${id}`).join(", ") : "memories"}</span>
-                    {ev.courseCount !== undefined ? (
-                      <span className="text-purple-700">· {ev.courseCount} loaded</span>
-                    ) : (
-                      <span className="text-purple-600 italic">loading…</span>
-                    )}
-                  </div>
-                );
-              }
-              if (ev.name === "save_memory") {
-                const desc = typeof ev.input.description === "string" ? ev.input.description : "";
-                return (
-                  <div key={idx} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-[10px] text-green-900">
-                    <span>💾</span>
-                    <span className="font-medium">{desc || "Saving memory"}</span>
-                    {ev.courseCount !== undefined ? (
-                      <span className="text-green-700">· saved</span>
-                    ) : (
-                      <span className="text-green-600 italic">saving…</span>
-                    )}
-                  </div>
-                );
-              }
-              if (ev.name === "forget_memory") {
-                const ids = Array.isArray(ev.input.ids) ? ev.input.ids : [];
-                return (
-                  <div key={idx} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 border border-red-200 text-[10px] text-red-900">
-                    <span>🗑️</span>
-                    <span className="font-medium">Forgetting {ids.length > 0 ? ids.map((id: unknown) => `#${id}`).join(", ") : "memory"}</span>
-                    {ev.courseCount !== undefined ? (
-                      <span className="text-red-700">· done</span>
-                    ) : (
-                      <span className="text-red-600 italic">removing…</span>
-                    )}
-                  </div>
-                );
-              }
-              if (ev.name === "run_what_if") {
-                const major = typeof ev.input.major === "string" ? ev.input.major : "";
-                return (
-                  <div key={idx} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[10px] text-blue-900">
-                    <span>🔮</span>
-                    <span className="font-medium">What-If{major ? `: ${major}` : ""}</span>
-                    {ev.courseCount !== undefined ? (
-                      <span className="text-blue-700">· done</span>
-                    ) : (
-                      <span className="text-blue-600 italic">running audit…</span>
-                    )}
-                  </div>
-                );
-              }
-              // Default: search_catalog / list_attributes
-              return (
-                <div key={idx} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[10px] text-amber-900">
-                  <span>🔍</span>
-                  <span className="font-medium">{describeSearch(ev.input)}</span>
-                  {ev.courseCount !== undefined ? (
-                    <span className="text-amber-700">· {ev.courseCount} results</span>
-                  ) : (
-                    <span className="text-amber-600 italic">searching…</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${isUser ? "bg-fordham-maroon text-white rounded-tr-sm whitespace-pre-wrap" : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tl-sm"}`}>
-          {isUser ? message.content : (
-          <Markdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-              strong: ({ children }) => <strong className="font-semibold text-gray-900 dark:text-gray-100">{children}</strong>,
-              em: ({ children }) => <em className="italic">{children}</em>,
-              ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 my-2">{children}</ul>,
-              ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 my-2">{children}</ol>,
-              li: ({ children }) => <li className="leading-snug">{children}</li>,
-              code: ({ children }) => <code className="bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
-              pre: ({ children }) => <pre className="bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100 p-2 rounded-md text-xs font-mono overflow-x-auto my-2">{children}</pre>,
-              h1: ({ children }) => <p className="font-semibold text-base mt-3 mb-1 first:mt-0">{children}</p>,
-              h2: ({ children }) => <p className="font-semibold text-[15px] mt-3 mb-1 first:mt-0">{children}</p>,
-              h3: ({ children }) => <p className="font-semibold text-[14px] mt-2 mb-1 first:mt-0">{children}</p>,
-              hr: () => <hr className="my-3 border-gray-300" />,
-              a: ({ href, children }) => (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-fordham-maroon underline hover:opacity-80"
-                >
-                  {children}
-                </a>
-              ),
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-2 border-gray-300 pl-3 my-2 text-gray-600 dark:text-gray-400">
-                  {children}
-                </blockquote>
-              ),
-              table: ({ children }) => (
-                <div className="my-2 overflow-x-auto">
-                  <table className="text-[11px] border-collapse">{children}</table>
-                </div>
-              ),
-              thead: ({ children }) => <thead className="bg-gray-50 dark:bg-gray-800">{children}</thead>,
-              tbody: ({ children }) => <tbody>{children}</tbody>,
-              tr: ({ children }) => <tr className="border-b border-gray-200 dark:border-gray-700">{children}</tr>,
-              th: ({ children }) => (
-                <th className="px-2 py-1 text-left font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700 last:border-r-0">
-                  {children}
-                </th>
-              ),
-              td: ({ children }) => (
-                <td className="px-2 py-1 align-top border-r border-gray-200 dark:border-gray-700 last:border-r-0">
-                  {children}
-                </td>
-              ),
-            }}
-          >
-            {personalize(message.content, firstName, advisorEmail, advisorName)}
-          </Markdown>
-        )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Onboarding Saves Bubble ──────────────────────────────────────────────────
-//
-// Bubble A at end of intake: "Saving your profile…" with a per-row status.
-// Rows start as pending (·) and flip to saved (✓) as ONBOARDING_SAVE_COMMITTED
-// broadcasts arrive. Once the whole batch is done, the header loses the
-// spinner. This is intentionally visually distinct from AI prose — it's a
-// system event, not the model's voice. The wrap-up message (Bubble B) streams
-// in afterward as a normal assistant bubble.
-
-const SYSTEM_ACTION_TYPE_STYLE: Record<
-  MemoryType,
-  { label: string; bg: string; text: string }
-> = {
-  interest: { label: "INTEREST", bg: "bg-purple-100 dark:bg-purple-900/40", text: "text-purple-800 dark:text-purple-200" },
-  constraint: { label: "CONSTRAINT", bg: "bg-amber-100 dark:bg-amber-900/40", text: "text-amber-800 dark:text-amber-200" },
-  goal: { label: "GOAL", bg: "bg-blue-100 dark:bg-blue-900/40", text: "text-blue-800 dark:text-blue-200" },
-  decision: { label: "DECISION", bg: "bg-green-100 dark:bg-green-900/40", text: "text-green-800 dark:text-green-200" },
-  note: { label: "NOTE", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-700 dark:text-gray-300" },
-};
-
-function OnboardingSavesBubble({
-  items,
-  done,
-}: {
-  items: SystemActionItem[];
-  done: boolean;
-}) {
-  const savedCount = items.filter((i) => i.status === "saved").length;
-  return (
-    <div className="rounded-xl border border-fordham-maroon/30 bg-fordham-maroon/5 p-3">
-      <div className="flex items-center gap-2 mb-2">
-        {!done && (
-          <span
-            className="inline-block w-3 h-3 rounded-full border-2 border-fordham-maroon border-t-transparent animate-spin"
-            aria-hidden
-          />
-        )}
-        {done && <span aria-hidden>✓</span>}
-        <p className="text-xs font-semibold text-fordham-maroon">
-          {!done
-            ? "Saving your profile…"
-            : savedCount === 0
-              ? "All set"
-              : `Saved ${savedCount} ${savedCount === 1 ? "memory" : "memories"}`}
-        </p>
-      </div>
-      {items.length === 0 ? (
-        <p className="text-[11px] text-gray-500 dark:text-gray-400 italic">
-          Nothing to save — we'll still get you set up.
-        </p>
-      ) : (
-        <ul className="space-y-1.5">
-          {items.map((item, i) => {
-            const style = SYSTEM_ACTION_TYPE_STYLE[item.type] ?? SYSTEM_ACTION_TYPE_STYLE.note;
-            return (
-              <li key={i} className="flex items-start gap-2 text-[12px]">
-                <span
-                  aria-hidden
-                  className={
-                    item.status === "saved"
-                      ? "text-green-600 dark:text-green-400 mt-[1px]"
-                      : "text-gray-400 dark:text-gray-600 mt-[1px]"
-                  }
-                >
-                  {item.status === "saved" ? "✓" : "·"}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span
-                      className={`inline-block px-1.5 py-[1px] rounded text-[9px] font-semibold tracking-wide ${style.bg} ${style.text}`}
-                    >
-                      {style.label}
-                    </span>
-                    <span className="text-gray-800 dark:text-gray-200 font-medium break-words">
-                      {item.description}
-                    </span>
-                  </div>
-                  {item.sourceQuote && (
-                    <div className="text-[10px] italic text-gray-500 dark:text-gray-400 mt-0.5 break-words">
-                      you said: "{item.sourceQuote}"
-                    </div>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
     </div>
   );
 }

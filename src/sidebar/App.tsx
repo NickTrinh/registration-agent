@@ -74,7 +74,7 @@ export default function App() {
           className="absolute inset-0 flex flex-col"
           style={{ display: page === "chat" ? "flex" : "none" }}
         >
-          <AuditChat />
+          <AuditChat onOpenSettings={() => setPage("settings")} />
         </div>
         <div
           className="absolute inset-0"
