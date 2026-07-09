@@ -1,6 +1,6 @@
 # 0028 — Only conversational turns enter the prompt path
 
-- **Status**: Accepted
+- **Status**: Accepted · Revisited 2026-07-09 (`uiOnly` deleted per the revisit clause)
 - **Date**: 2026-07-09
 - **Related**: hardens the history assembly behind 0010/0020 (prompt caching); the `error` field it threads is produced by the failed-tool broadcast added alongside it
 
@@ -109,6 +109,16 @@ guessing. The producer of a UI artifact is the right place to label it.
   attractive nuisance.
 - The message bus gains a typed union. `uiOnly` should then be part of it, and
   the `conversationalOnly` boundary re-expressed as a type, not a filter.
+
+## Revisited — 2026-07-09
+
+The first revisit trigger fired the same day, as this ADR predicted it might:
+the visual redesign (ADR 0024) adopted Alternative B. Errors and loop-exit
+notices now live in dedicated turn-scoped state and render as `<Notice>`s
+(ADR 0026) — they never enter `messages`, so there is nothing to strip.
+`uiOnly` lost its only user and was **deleted** rather than left as an
+attractive nuisance, exactly per the clause above. `conversationalOnly()`
+remains the single see/tell gate; it now filters only `systemAction`.
 
 ## References
 

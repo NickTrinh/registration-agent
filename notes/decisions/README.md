@@ -54,9 +54,10 @@ For a narrative pass through the whole decision arc, read them in numerical orde
 | [0021](./0021-mv3-keepalive-and-failure-surfacing.md) | MV3 keepalive for post-stream work + tool-cap/truncation surfacing | Accepted | 2026-07-08 |
 | [0022](./0022-catalog-full-replace-single-term.md) | Course catalog is a full-replace, single-term store · Constrains multi-term | Accepted | 2026-07-08 |
 | [0023](./0023-weekend-meeting-days.md) | Weekend meeting days (Saturday / Sunday) · Fixes the 0008 day mapping | Accepted | 2026-07-08 |
+| [0024](./0024-the-annotated-worksheet-not-a-chat-app.md) | The annotated worksheet, not a chat app (batched visual redesign) · Lands 0028's Alt B | Accepted | 2026-07-09 |
 | [0025](./0025-dark-mode-is-a-token-split-not-an-inversion.md) | Dark mode is a token split, not an inversion (maroon fills; `maroon.ink` writes) | Accepted | 2026-07-09 |
 | [0026](./0026-system-events-never-speak-in-the-advisors-voice.md) | System events never speak in the advisor's voice (`<Notice>`) · Cites 0028, renders 0029 | Accepted | 2026-07-09 |
 | [0027](./0027-serialize-and-generation-guard-memory-writes.md) | Serialize memory writes and guard them with a store generation · Applies 0003 | Accepted | 2026-07-09 |
-| [0028](./0028-only-conversational-turns-enter-the-prompt-path.md) | Only conversational turns enter the prompt path (`uiOnly`) · Hardens 0010/0020 | Accepted | 2026-07-09 |
+| [0028](./0028-only-conversational-turns-enter-the-prompt-path.md) | Only conversational turns enter the prompt path · Hardens 0010/0020 · Revisited (`uiOnly` deleted) | Accepted | 2026-07-09 |
 | [0029](./0029-an-expired-banner-session-is-a-typed-error.md) | An expired Banner session is a typed error, not a SyntaxError | Accepted | 2026-07-09 |
 | [0030](./0030-exactly-one-terminal-event-from-the-turn-that-owns-the-spinner.md) | Exactly one terminal event, from the turn that owns the spinner | Accepted | 2026-07-09 |
