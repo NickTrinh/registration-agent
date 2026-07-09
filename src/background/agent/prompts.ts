@@ -1,12 +1,20 @@
 // System prompts for the advisor chat loop, and the builders that assemble them
-// into Anthropic system-block arrays. Prompt TEXT is unchanged from the
-// pre-refactor service worker — the builders only relocate it across cache
-// breakpoints. ADR 0020 (Phase 2) splits the advisor prompt into stable /
-// audit / volatile blocks so per-turn memory writes stop invalidating the
-// cached prefix.
+// into Anthropic system-block arrays. ADR 0020 (Phase 2) splits the advisor
+// prompt into stable / audit / volatile blocks so per-turn memory writes stop
+// invalidating the cached prefix. Section TEXT is unchanged from the
+// pre-refactor service worker; the block ORDER changed by design (volatile
+// last), and each block carries its own trailing separator — see
+// SECTION_SEPARATOR.
 // Implements: ADR 0019, ADR 0020 — see notes/decisions/.
 
 import type Anthropic from "@anthropic-ai/sdk";
+
+// Anthropic joins system text blocks with no separator of its own, so every
+// non-final block must carry the blank line that separated sections back when
+// the prompt was one string. Without it a section header lands on the tail of
+// the previous line ("…or times=== LIVE DEGREEWORKS AUDIT ==="). The 0020 split
+// dropped these; prompts.test.ts locks them.
+const SECTION_SEPARATOR = "\n\n";
 
 // Onboarding intake prompt — used only when memories is empty AND the student
 // hasn't completed onboarding yet. Sonnet runs a structured but conversational
@@ -117,9 +125,11 @@ export interface AdvisorPromptInput {
 //   b. audit text — changes only on refresh, cached (ephemeral)
 //   c. volatile — profile + memory index, NO cache_control (sits after the last
 //      breakpoint, so its churn — every curator save — never invalidates a+b).
-// Prompt TEXT is unchanged from Phase 1; only the block boundaries + ordering
-// moved. NOTE: the "Tools" and "Memory Index" copy still say "above" while the
-// index now renders below the instructions — wording preserved per plan.
+// Section TEXT is unchanged from Phase 1; the block boundaries + ordering moved,
+// and blocks a + b carry a trailing SECTION_SEPARATOR so the assembled prompt
+// still puts exactly one blank line between sections. NOTE: the "Tools" and
+// "Memory Index" copy still say "above" while the index now renders below the
+// instructions — wording preserved per plan.
 export function buildAdvisorSystemBlocks({
   profile,
   memoryIndex,
@@ -198,14 +208,15 @@ Friendly but professional — like a knowledgeable peer advisor.
 
 ## Constraints
 - Ground requirement advice in the audit data below
-- Ground section/schedule advice in search_catalog results — never invent CRNs or times`;
+- Ground section/schedule advice in search_catalog results — never invent CRNs or times${SECTION_SEPARATOR}`;
 
   // Block b — audit text (changes only on a refresh, so it caches well behind
-  // the stable instructions above).
+  // the stable instructions above). Non-final here, so it carries a separator —
+  // unlike the onboarding audit block, which is last.
   const auditBlock =
 `=== LIVE DEGREEWORKS AUDIT ===
 ${auditText || "Audit not loaded. Ask the student to visit their DegreeWorks page."}
-==============================`;
+==============================${SECTION_SEPARATOR}`;
 
   // Block c — volatile context: profile + memory index. Placed AFTER the last
   // cache breakpoint so the curator's per-turn memory writes (the most frequent
@@ -233,7 +244,8 @@ ${memoryIndex || "(no memories yet — the background curator populates these fr
 // Build the onboarding system blocks. Phase 2 (ADR 0020): two blocks — the
 // stable intake prompt and the audit — each behind its own cache breakpoint.
 // Onboarding has no volatile profile/memory segment (memories are empty by
-// definition during intake), so both blocks cache cleanly.
+// definition during intake), so both blocks cache cleanly. The intake prompt
+// carries the separator; the audit block is final, so it does not.
 export function buildOnboardingSystemBlocks({
   auditText,
 }: {
@@ -244,7 +256,11 @@ export function buildOnboardingSystemBlocks({
 ${auditText || "Audit not loaded. Ask the student to visit their DegreeWorks page."}
 ==============================`;
   return [
-    { type: "text", text: ONBOARDING_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+    {
+      type: "text",
+      text: `${ONBOARDING_SYSTEM_PROMPT}${SECTION_SEPARATOR}`,
+      cache_control: { type: "ephemeral" },
+    },
     { type: "text", text: auditBlock, cache_control: { type: "ephemeral" } },
   ];
 }
