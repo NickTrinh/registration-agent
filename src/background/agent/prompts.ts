@@ -1,9 +1,10 @@
 // System prompts for the advisor chat loop, and the builders that assemble them
 // into Anthropic system-block arrays. Prompt TEXT is unchanged from the
-// pre-refactor service worker — this phase only relocates it and wraps the
-// single cached block behind builders. ADR 0020 (Phase 2) splits the advisor
-// prompt into multiple cache breakpoints; the builder is the seam for that.
-// Implements: ADR 0019 — see notes/decisions/.
+// pre-refactor service worker — the builders only relocate it across cache
+// breakpoints. ADR 0020 (Phase 2) splits the advisor prompt into stable /
+// audit / volatile blocks so per-turn memory writes stop invalidating the
+// cached prefix.
+// Implements: ADR 0019, ADR 0020 — see notes/decisions/.
 
 import type Anthropic from "@anthropic-ai/sdk";
 
@@ -74,24 +75,24 @@ export interface AdvisorPromptInput {
   auditText: string;
 }
 
-// Build the advisor (normal-mode) system blocks. Phase 1: a single cached
-// block, text identical to the pre-refactor worker. Phase 2 (ADR 0020) splits
-// this into stable / audit / volatile breakpoints.
+// Build the advisor (normal-mode) system blocks. Phase 2 (ADR 0020) splits the
+// advisor prompt into THREE blocks so volatile context (profile + memory index)
+// no longer invalidates the cached instruction/audit prefix:
+//   a. stable instructions — mode-invariant, cached (ephemeral)
+//   b. audit text — changes only on refresh, cached (ephemeral)
+//   c. volatile — profile + memory index, NO cache_control (sits after the last
+//      breakpoint, so its churn — every curator save — never invalidates a+b).
+// Prompt TEXT is unchanged from Phase 1; only the block boundaries + ordering
+// moved. NOTE: the "Tools" and "Memory Index" copy still say "above" while the
+// index now renders below the instructions — wording preserved per plan.
 export function buildAdvisorSystemBlocks({
   profile,
   memoryIndex,
   auditText,
 }: AdvisorPromptInput): Anthropic.Messages.TextBlockParam[] {
-  const systemText =
+  // Block a — stable instructions (everything mode-invariant).
+  const stableText =
 `You are an AI academic advisor embedded inside Fordham University's DegreeWorks portal.
-
-## Student Profile (persistent memory)
-${profile || "Profile not yet generated — it will appear after the audit loads."}
-
-## Memory Index
-The entries below are durable facts learned about this student in prior conversations. Each line is \`#<id> [<type>] <description>\` — the description is intentionally terse and is NOT sufficient grounding on its own. To use a memory in your response, call \`recall_memory\` with the relevant ID(s); this loads the full content. If nothing in the index looks relevant to the student's current message, don't call the tool — unrelated recalls waste turns.
-
-${memoryIndex || "(no memories yet — the background curator populates these from future conversations.)"}
 
 ## Placeholders
 The student's name, advisor name, and advisor email appear in the audit as the literal tokens [NAME], [ADVISOR], and [ADVISOR_EMAIL]. These are privacy placeholders — the extension substitutes real values on the client side before the chat is rendered. Use the tokens verbatim when addressing the student or referencing their advisor; never ask for the real values and never guess. If the audit shows "(advisor email not provided)" in place of the email token, the advisor's email isn't available — in that case, don't suggest emailing the advisor; suggest checking DegreeWorks or the Office of Academic Advising instead.
@@ -162,30 +163,53 @@ Friendly but professional — like a knowledgeable peer advisor.
 
 ## Constraints
 - Ground requirement advice in the audit data below
-- Ground section/schedule advice in search_catalog results — never invent CRNs or times
+- Ground section/schedule advice in search_catalog results — never invent CRNs or times`;
 
-=== LIVE DEGREEWORKS AUDIT ===
+  // Block b — audit text (changes only on a refresh, so it caches well behind
+  // the stable instructions above).
+  const auditBlock =
+`=== LIVE DEGREEWORKS AUDIT ===
 ${auditText || "Audit not loaded. Ask the student to visit their DegreeWorks page."}
 ==============================`;
 
-  // Wrap the system prompt in a cache breakpoint so Anthropic caches the
-  // (~3k-token) audit + instructions for 5 minutes. Turn 2+ in the same
-  // conversation reads the prefix from cache — ~90% input-token savings.
-  // Cache invalidates automatically if `profile` or `auditText` change.
-  return [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }];
+  // Block c — volatile context: profile + memory index. Placed AFTER the last
+  // cache breakpoint so the curator's per-turn memory writes (the most frequent
+  // mutation) no longer invalidate the cached instruction + audit prefix.
+  const volatileText =
+`## Student Profile (persistent memory)
+${profile || "Profile not yet generated — it will appear after the audit loads."}
+
+## Memory Index
+The entries below are durable facts learned about this student in prior conversations. Each line is \`#<id> [<type>] <description>\` — the description is intentionally terse and is NOT sufficient grounding on its own. To use a memory in your response, call \`recall_memory\` with the relevant ID(s); this loads the full content. If nothing in the index looks relevant to the student's current message, don't call the tool — unrelated recalls waste turns.
+
+${memoryIndex || "(no memories yet — the background curator populates these from future conversations.)"}`;
+
+  // Two cache breakpoints (a + b); the volatile block trails them uncached.
+  // Turn 2+ within the 5-minute TTL reads the instruction + audit prefix from
+  // cache even after a memory save, since the mutable segment lives past the
+  // last breakpoint. See ADR 0020 (amends 0010).
+  return [
+    { type: "text", text: stableText, cache_control: { type: "ephemeral" } },
+    { type: "text", text: auditBlock, cache_control: { type: "ephemeral" } },
+    { type: "text", text: volatileText },
+  ];
 }
 
-// Build the onboarding system blocks. Phase 1: a single cached block, text
-// identical to the pre-refactor worker.
+// Build the onboarding system blocks. Phase 2 (ADR 0020): two blocks — the
+// stable intake prompt and the audit — each behind its own cache breakpoint.
+// Onboarding has no volatile profile/memory segment (memories are empty by
+// definition during intake), so both blocks cache cleanly.
 export function buildOnboardingSystemBlocks({
   auditText,
 }: {
   auditText: string;
 }): Anthropic.Messages.TextBlockParam[] {
-  const systemText = `${ONBOARDING_SYSTEM_PROMPT}
-
-=== LIVE DEGREEWORKS AUDIT ===
+  const auditBlock =
+`=== LIVE DEGREEWORKS AUDIT ===
 ${auditText || "Audit not loaded. Ask the student to visit their DegreeWorks page."}
 ==============================`;
-  return [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }];
+  return [
+    { type: "text", text: ONBOARDING_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+    { type: "text", text: auditBlock, cache_control: { type: "ephemeral" } },
+  ];
 }
