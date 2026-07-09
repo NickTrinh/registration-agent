@@ -357,6 +357,30 @@ export function installChromeMock(): void {
           case "AI_CHAT":
             if (scenario.onChat) play(scenario.onChat);
             return reply({ ok: true });
+          case "REFRESH_CATALOG": {
+            // Canned catalog fetch so the FirstRun step-3 button (ADR 0032)
+            // is drivable in the harness: five progress ticks, then READY +
+            // the storage write that flips hasCatalog in the parent.
+            const term = (msg as { term?: string }).term ?? "202710";
+            const script: Broadcast[] = [];
+            for (let i = 1; i <= 5; i++) {
+              script.push({
+                delay: i * 300,
+                msg: { type: "CATALOG_PROGRESS", done: i, total: 5, label: `page ${i}` },
+              });
+            }
+            script.push({
+              delay: 1800,
+              msg: { type: "CATALOG_READY", term, courseCount: 1899, updatedAt: Date.now() },
+            });
+            play(script);
+            timers.push(
+              setTimeout(() => {
+                mock.storage.local.set({ catalogCourseCount: 1899 });
+              }, 1800)
+            );
+            return reply({ ok: true });
+          }
           case "CANCEL_AI_CHAT":
             timers.forEach(clearTimeout);
             timers.length = 0;

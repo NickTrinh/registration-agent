@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+// Implements: ADR 0032 (pin-to-top scrolling, paced streaming, live composer,
+// fresh-chat Continue, greetings)
+import { useState, useEffect, useRef, useMemo } from "react";
 import { prefersReducedMotion } from "../theme";
 import { conversationalOnly } from "../../shared/types";
 import type {
@@ -17,6 +19,16 @@ const SUGGESTIONS = [
   "What core requirements am I missing?",
   "What electives can I take next semester?",
   "How many credits do I have left?",
+];
+
+// Claude-app greeting (ADR 0032): the empty state opens with a warm,
+// personal line instead of a manual's sentence. One per mount — it must not
+// re-roll while the student watches. Registrar's world, no exclamation marks.
+const GREETINGS: ((name: string | null) => string)[] = [
+  (n) => (n ? `Back to planning, ${n}?` : "Back to planning?"),
+  (n) => (n ? `What's next, ${n}?` : "What's next?"),
+  () => "Checking on a requirement?",
+  () => "Where are we headed this semester?",
 ];
 
 // Implements: ADR 0024 — the advisor tells the truth about what it's doing.
@@ -128,8 +140,39 @@ export default function AuditChat({
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
   const toastCounter = useRef(0);
 
+  // Picked once per empty state, re-personalized if the first name resolves
+  // after mount (storage reads are async — without the firstName dep the
+  // greeting would greet a stranger for the whole session).
+  const emptyChat = messages.length === 0;
+  const greetingIndexRef = useRef(Math.floor(Math.random() * GREETINGS.length));
+  const greeting = useMemo(
+    () => (emptyChat ? GREETINGS[greetingIndexRef.current](firstName) : ""),
+    [emptyChat, firstName]
+  );
+
+  // Post-onboarding fresh-chat marker (ADR 0032): Continue now clears the
+  // thread instead of leaving the whole intake transcript as the student's
+  // "first chat". Session-scoped — gone on next panel open, like a snackbar.
+  const [justOnboarded, setJustOnboarded] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Pin-to-top scroll contract (ADR 0032). Set by sendMessage/retryTurn,
+  // consumed by the [messages] effect below: the next render that contains
+  // a new user turn scrolls THAT turn to the top of the viewport, and then
+  // nothing yanks the pane while the answer streams in underneath.
+  const pinNextRef = useRef(false);
+
+  // Paced streaming (ADR 0032). The worker's AI_CHUNK deltas arrive in
+  // network-sized bursts; rendering them raw reads as slabs. Deltas land in
+  // streamBufRef and an rAF loop drains a fraction per frame — fast when
+  // behind, gentle when caught up. donePendingRef holds AI_DONE's work until
+  // the buffer empties so the turn never snaps to "finished" mid-word.
+  const streamBufRef = useRef("");
+  const drainRef = useRef<number | null>(null);
+  const donePendingRef = useRef(false);
 
   // Auto-scroll user-lock. Two parallel sources of truth:
   //  - `isAtBottomRef` drives the scroll effect (no re-render, no stale
@@ -237,8 +280,24 @@ export default function AuditChat({
       if (loadingRef.current) {
         chrome.runtime.sendMessage({ type: "CANCEL_AI_CHAT" });
       }
+      // Kill a live drain loop — an rAF surviving unmount would call
+      // setState on a dead component.
+      if (drainRef.current !== null) cancelAnimationFrame(drainRef.current);
     };
   }, []);
+
+  // The composer never steals its own focus back (ADR 0032): disabling the
+  // textarea while loading dropped focus every turn, so Patch had to click
+  // the field again after every answer. It stays enabled now; this effect
+  // just restores focus in case the browser moved it (e.g. the Stop button
+  // swap). Guarded so it doesn't fire on mount and yank focus from FirstRun.
+  const wasLoadingRef = useRef(false);
+  useEffect(() => {
+    if (wasLoadingRef.current && !loading) {
+      textareaRef.current?.focus();
+    }
+    wasLoadingRef.current = loading;
+  }, [loading]);
 
   // Auto-dismiss the toast after 3s. Replaced immediately (timer resets)
   // when a new save broadcast arrives, so rapid successive saves don't queue
@@ -271,52 +330,121 @@ export default function AuditChat({
     return () => clearInterval(interval);
   }, [loading]);
 
+  // ─── Paced-streaming machinery (ADR 0032) ──────────────────────────────
+  // Function declarations (hoisted) touching only refs + functional setState,
+  // so the once-registered broadcast listener can call them without a stale
+  // closure.
+
+  // The one place a text delta enters `messages`. systemAction bubbles are
+  // non-append targets so Sonnet's wrap-up text after complete_onboarding
+  // lands in a fresh Bubble B.
+  function appendDelta(delta: string) {
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last?.role === "assistant" && !last.systemAction) {
+        return [...prev.slice(0, -1), { ...last, content: last.content + delta }];
+      }
+      return [...prev, { role: "assistant", content: delta, timestamp: new Date().toISOString() }];
+    });
+  }
+
+  // Everything AI_DONE means — deferred while buffered text is still
+  // draining so the turn never snaps closed mid-word.
+  function finishTurn() {
+    setLoading(false);
+    // Strip a trailing empty assistant bubble if Sonnet finished with
+    // tool_use blocks only and no text — otherwise we'd render a blank
+    // bubble. A bubble with completed tool chips but no text stays (so
+    // the student sees the search happened). systemAction bubbles are
+    // skipped by this cleanup since their "text content" is the items
+    // list, not the .content field.
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (
+        last?.role === "assistant" &&
+        !last.systemAction &&
+        last.content.trim() === "" &&
+        (last.toolEvents ?? []).length === 0
+      ) {
+        return prev.slice(0, -1);
+      }
+      return prev;
+    });
+    // If the save batch committed during this turn, the wrap-up bubble
+    // just finished streaming — show the Continue button now. The user
+    // dismisses it at their own pace; input stays disabled meanwhile.
+    if (onboardingFinalizedRef.current) {
+      setShowContinueButton(true);
+      setOnboardingFinalized(false);
+      onboardingFinalizedRef.current = false;
+    }
+  }
+
+  // Drain a fraction of the buffer per animation frame: max(2, len/10)
+  // characters — proportional, so it accelerates when a burst lands and
+  // eases as it catches up (the Claude-app reveal, not a typewriter LARP).
+  function ensureDrain() {
+    if (drainRef.current !== null) return;
+    const step = () => {
+      const buf = streamBufRef.current;
+      if (buf.length === 0) {
+        drainRef.current = null;
+        if (donePendingRef.current) {
+          donePendingRef.current = false;
+          finishTurn();
+        }
+        return;
+      }
+      const n = Math.max(2, Math.ceil(buf.length / 10));
+      streamBufRef.current = buf.slice(n);
+      appendDelta(buf.slice(0, n));
+      drainRef.current = requestAnimationFrame(step);
+    };
+    drainRef.current = requestAnimationFrame(step);
+  }
+
+  // Catch the rendered text up to the network instantly. Called before any
+  // event that anchors to "what the model has said so far" — a tool call,
+  // an error, the save batch — so pacing never misorders the transcript.
+  function flushStream() {
+    if (drainRef.current !== null) {
+      cancelAnimationFrame(drainRef.current);
+      drainRef.current = null;
+    }
+    if (streamBufRef.current.length > 0) {
+      appendDelta(streamBufRef.current);
+      streamBufRef.current = "";
+    }
+    if (donePendingRef.current) {
+      donePendingRef.current = false;
+      finishTurn();
+    }
+  }
+
   // Listen for service worker broadcasts
   useEffect(() => {
     const listener = (message: any) => {
       switch (message.type) {
         case "AI_CHUNK":
-          setMessages((prev) => {
-            const last = prev[prev.length - 1];
-            // Only append to the last bubble if it's a normal AI bubble.
-            // systemAction bubbles are non-append targets so Sonnet's wrap-up
-            // text after complete_onboarding lands in a fresh Bubble B.
-            if (last?.role === "assistant" && !last.systemAction) {
-              return [...prev.slice(0, -1), { ...last, content: last.content + message.delta }];
-            }
-            return [...prev, { role: "assistant", content: message.delta, timestamp: new Date().toISOString() }];
-          });
+          // Reduced motion: no paced reveal — text lands as it arrives.
+          if (prefersReducedMotion()) {
+            appendDelta(message.delta);
+          } else {
+            streamBufRef.current += message.delta;
+            ensureDrain();
+          }
           break;
         case "AI_DONE":
-          setLoading(false);
-          // Strip a trailing empty assistant bubble if Sonnet finished with
-          // tool_use blocks only and no text — otherwise we'd render a blank
-          // bubble. A bubble with completed tool chips but no text stays (so
-          // the student sees the search happened). systemAction bubbles are
-          // skipped by this cleanup since their "text content" is the items
-          // list, not the .content field.
-          setMessages((prev) => {
-            const last = prev[prev.length - 1];
-            if (
-              last?.role === "assistant" &&
-              !last.systemAction &&
-              last.content.trim() === "" &&
-              (last.toolEvents ?? []).length === 0
-            ) {
-              return prev.slice(0, -1);
-            }
-            return prev;
-          });
-          // If the save batch committed during this turn, the wrap-up bubble
-          // just finished streaming — show the Continue button now. The user
-          // dismisses it at their own pace; input stays disabled meanwhile.
-          if (onboardingFinalizedRef.current) {
-            setShowContinueButton(true);
-            setOnboardingFinalized(false);
-            onboardingFinalizedRef.current = false;
+          // If paced text is still draining, let the drain finish the turn;
+          // otherwise finish now.
+          if (streamBufRef.current.length > 0 || drainRef.current !== null) {
+            donePendingRef.current = true;
+          } else {
+            finishTurn();
           }
           break;
         case "AI_ERROR":
+          flushStream();
           // Never the advisor's voice: the raw error renders as a turn-scoped
           // <Notice> below the thread, quoted in mono — and never enters
           // `messages`, so nothing needs stripping before send. This is
@@ -336,6 +464,9 @@ export default function AuditChat({
           // trio (which renders a distinct systemAction bubble) — we skip
           // making a generic tool-event chip for it.
           if (message.name === "complete_onboarding") break;
+          // The citation anchors to the text the model produced before the
+          // call — catch the reveal up so it can't attach mid-sentence.
+          flushStream();
           setMessages((prev) => {
             const event: ToolEvent = {
               name: message.name,
@@ -374,6 +505,7 @@ export default function AuditChat({
           // no chip (handled by the ONBOARDING_SAVES_* broadcast trio), so
           // threading a result into an unrelated sibling chip would be wrong.
           if (message.name === "complete_onboarding") break;
+          flushStream();
           setMessages((prev) => {
             for (let i = prev.length - 1; i >= 0; i--) {
               const m = prev[i];
@@ -440,6 +572,8 @@ export default function AuditChat({
           break;
         }
         case "ONBOARDING_SAVES_START": {
+          // The save list lands after whatever the model already said.
+          flushStream();
           // Insert the systemAction bubble (Bubble A — the "Saving your
           // profile…" list). Each subsequent ONBOARDING_SAVE_COMMITTED marks
           // one row as saved. Sonnet's wrap-up text then streams into a
@@ -556,18 +690,47 @@ export default function AuditChat({
     return () => container.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Auto-scroll only when the user is already at the bottom. If they've
-  // scrolled up, respect their position — the "Jump to latest" button lets
-  // them catch up on demand.
+  // Pin-to-top (ADR 0032) — the auto-follow effect this replaces was the
+  // worst live-test bug: it chased the growing answer, clipping the status
+  // phrase at the top and scrolling tool citations out of view before they
+  // could be read. Claude's contract instead: on send, the user's turn pins
+  // to the top of the viewport and the answer streams VISIBLY beneath it;
+  // nothing yanks the pane again until the next send. The ↓ Latest button
+  // remains the manual catch-up.
+  function pinLastUserTurn() {
+    const c = scrollContainerRef.current;
+    if (!c) return;
+    const turns = c.querySelectorAll<HTMLElement>('[data-turn="user"]');
+    const el = turns[turns.length - 1];
+    if (!el) return;
+    // Rect math, not offsetTop — offsetParent is the message's own relative
+    // wrapper, so offsetTop would measure the wrong ancestor.
+    const cRect = c.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    c.scrollTo({
+      top: c.scrollTop + (elRect.top - cRect.top) - 8,
+      // `behavior` is a JS argument, so the reduced-motion block in
+      // styles.css cannot reach it. Read the query here instead.
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  }
+
   useEffect(() => {
-    if (isAtBottomRef.current) {
-      // `behavior` is a JS argument, so the reduced-motion block in styles.css
-      // cannot reach it. Read the query here instead.
+    if (!pinNextRef.current) return;
+    pinNextRef.current = false;
+    pinLastUserTurn();
+  }, [messages]);
+
+  // The one remaining auto-scroll: the Continue-to-chat button appearing at
+  // the end of intake — it renders below the wrap-up text and must be seen
+  // to be pressed.
+  useEffect(() => {
+    if (showContinueButton) {
       bottomRef.current?.scrollIntoView({
         behavior: prefersReducedMotion() ? "auto" : "smooth",
       });
     }
-  }, [messages, showContinueButton]);
+  }, [showContinueButton]);
 
   function scrollToBottomImmediately() {
     isAtBottomRef.current = true;
@@ -597,10 +760,8 @@ export default function AuditChat({
     // A new turn supersedes the previous turn's system events.
     setTurnError(null);
     setTurnNotice(null);
-    // User is actively starting a new exchange — they should see their own
-    // message and the incoming reply. Release any scroll-up lock so the
-    // response auto-scrolls into view.
-    scrollToBottomImmediately();
+    // Pin the turn we just added to the top of the viewport (ADR 0032).
+    pinNextRef.current = true;
     // Only real conversational turns reach the model. systemAction bubbles
     // (end-of-intake save list) are things the UI said, not things the
     // advisor said or heard; errors never enter `messages` at all (ADR 0026).
@@ -640,6 +801,9 @@ export default function AuditChat({
   // while loading. The worker's currentChatController aborts; the existing
   // abort path already broadcasts AI_DONE so loading flips back to false.
   function cancelStream() {
+    // Land whatever is still buffered — Stop means "stop", not "keep
+    // trickling out the backlog".
+    flushStream();
     chrome.runtime.sendMessage({ type: "CANCEL_AI_CHAT" });
   }
 
@@ -652,7 +816,9 @@ export default function AuditChat({
     setTurnError(null);
     setTurnNotice(null);
     setLoading(true);
-    scrollToBottomImmediately();
+    // Re-pin the turn being retried — same contract as a fresh send. The
+    // [messages] pin effect won't fire (Retry appends nothing), so pin now.
+    pinLastUserTurn();
     chrome.runtime.sendMessage({
       type: "AI_CHAT",
       messages: conversationalOnly(messages),
@@ -662,16 +828,22 @@ export default function AuditChat({
     });
   }
 
-  // Dismiss the end-of-intake gate and open the input for normal chat. The
-  // onboarding mode flag already flipped to false when ONBOARDING_SAVES_DONE
-  // arrived, so the next user message routes through the normal prompt.
-  // Conversation history is preserved — the student can scroll back and
-  // re-read the intake and the saved-memories bubble.
+  // Dismiss the end-of-intake gate and start a FRESH chat (ADR 0032 —
+  // live-test round 1: "Continue" that changed nothing read as a dead
+  // button). The intake transcript's durable output is the saved memories,
+  // which live in Settings; the conversation itself is scaffolding, so it
+  // clears. A quiet one-line marker in the empty state says where the
+  // memories went. Onboarding mode already flipped off at SAVES_DONE.
   function continueToChat() {
     setShowContinueButton(false);
     setOnboardingFinalized(false);
     onboardingFinalizedRef.current = false;
-    chrome.storage.session.set({ [SHOW_CONTINUE_KEY]: false });
+    setMessages([]);
+    // The persist effect skips empty arrays — remove the keys explicitly or
+    // the intake transcript resurrects on next panel open.
+    chrome.storage.session.remove([SESSION_KEY, ONBOARDING_MODE_KEY, SHOW_CONTINUE_KEY]);
+    setJustOnboarded(true);
+    textareaRef.current?.focus();
   }
 
   return (
@@ -762,15 +934,23 @@ export default function AuditChat({
 
         {messages.length === 0 && welcomeDecided && !showWelcomeCard && (
           <div className="pt-4 animate-msg-in">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Ask anything about your degree requirements.
+            {justOnboarded && (
+              <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">
+                Onboarding complete — memories saved · view them in Settings
+              </p>
+            )}
+            {/* The Claude-app open (ADR 0032): a warm greeting where the
+                manual sentence used to be; the suggestions carry the "what
+                can I ask" job on their own. */}
+            <p className="text-xl font-semibold tracking-tight text-stone-900 dark:text-stone-100 mb-3">
+              {greeting}
             </p>
-            <div className="divide-y divide-gray-100 dark:divide-gray-800 border-y border-gray-100 dark:border-gray-800">
+            <div className="divide-y divide-stone-100 dark:divide-stone-800 border-y border-stone-100 dark:border-stone-800">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
-                  className="focus-ring block w-full text-left px-1 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:text-fordham-maroon dark:hover:text-fordham-maroon-ink active:bg-gray-50 dark:active:bg-gray-800/60 transition-colors"
+                  className="focus-ring block w-full text-left px-1 py-2.5 text-sm text-stone-700 dark:text-stone-300 hover:text-fordham-maroon dark:hover:text-fordham-maroon-ink active:bg-stone-50 dark:active:bg-stone-800/60 transition-colors"
                 >
                   {s}
                 </button>
@@ -858,10 +1038,11 @@ export default function AuditChat({
             : thinkingPhrase;
           return (
             <div className="animate-msg-in">
-              <p
-                aria-hidden
-                className="text-[13px] italic text-gray-600 dark:text-gray-400"
-              >
+              {/* shimmer-text owns the ink (bg-clip-text): a lighter band
+                  sweeps the phrase so the pane visibly lives through a long
+                  tool call. Frozen — but still legible — under
+                  prefers-reduced-motion. Implements: ADR 0032. */}
+              <p aria-hidden className="text-[13px] italic shimmer-text">
                 {phrase}…
               </p>
               <span className="sr-only">Advisor is thinking</span>
@@ -883,7 +1064,7 @@ export default function AuditChat({
         <div className="px-3 pb-1 shrink-0">
           <p
             key={toast.id}
-            className="border-l-2 border-fordham-maroon dark:border-fordham-maroon-ink pl-2 py-0.5 text-[11px] leading-relaxed text-gray-600 dark:text-gray-400 truncate animate-toast-pop"
+            className="border-l-2 border-fordham-maroon dark:border-fordham-maroon-ink pl-2 py-0.5 text-[11px] leading-relaxed text-stone-600 dark:text-stone-400 truncate animate-toast-pop"
           >
             <span className="uppercase tracking-wider font-semibold">Saved</span>
             {" · "}
@@ -892,9 +1073,11 @@ export default function AuditChat({
         </div>
       )}
 
-      {/* Input — disabled while the Continue-to-chat gate is showing so the
-          student reads the wrap-up + saved memories before the next turn. */}
-      <div className="px-3 pb-3 pt-2 border-t border-gray-200/70 dark:border-gray-800 shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
+      {/* Input — disabled only while the Continue-to-chat gate is showing.
+          NOT disabled while loading (ADR 0032): disabling dropped focus every
+          turn, and typing-while-streaming is the messenger contract — Enter
+          during a stream is simply ignored (sendMessage early-returns). */}
+      <div className="px-3 pb-3 pt-2 border-t border-stone-200/70 dark:border-stone-800 shrink-0 bg-stone-50/80 dark:bg-stone-900/80 backdrop-blur-md">
         {/* The iMessage composer contract (ADR 0031): a pill field with a
             circular action button anchored at the baseline. items-end keeps
             the circle at the bottom while the textarea grows. */}
@@ -903,11 +1086,14 @@ export default function AuditChat({
               lines; Enter sends, Shift+Enter breaks the line — the messenger
               contract. Implements: ADR 0024. 18px radius = one bubble. */}
           <textarea
+            ref={textareaRef}
             rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
+                // preventDefault even while loading — otherwise Enter
+                // inserts newlines into the drafted next message.
                 e.preventDefault();
                 sendMessage(input);
               }
@@ -915,15 +1101,15 @@ export default function AuditChat({
             placeholder={
               showContinueButton ? "Press Continue to start chat…" : "Ask anything…"
             }
-            disabled={loading || showContinueButton}
+            disabled={showContinueButton}
             aria-label="Message the advisor"
-            className="focus-ring flex-1 px-3.5 py-[7px] rounded-[18px] border border-gray-300 dark:border-gray-700 bg-transparent text-sm leading-relaxed [field-sizing:content] max-h-36 resize-none disabled:opacity-50 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+            className="focus-ring flex-1 px-3.5 py-[7px] rounded-[18px] border border-stone-300 dark:border-stone-700 bg-transparent text-sm leading-relaxed [field-sizing:content] max-h-36 resize-none disabled:opacity-50 placeholder:text-stone-400 dark:placeholder:text-stone-500"
           />
           {loading ? (
             <button
               onClick={cancelStream}
               aria-label="Stop generating"
-              className="focus-ring shrink-0 w-[34px] h-[34px] rounded-full bg-gray-700 dark:bg-gray-600 text-white hover:bg-gray-800 dark:hover:bg-gray-500 active:scale-90 transition-all duration-200 ease-spring inline-flex items-center justify-center"
+              className="focus-ring shrink-0 w-[34px] h-[34px] rounded-full bg-stone-700 dark:bg-stone-600 text-white hover:bg-stone-800 dark:hover:bg-stone-500 active:scale-90 transition-all duration-200 ease-spring inline-flex items-center justify-center"
             >
               <span aria-hidden className="block w-2.5 h-2.5 rounded-[2px] bg-white" />
             </button>
@@ -932,7 +1118,7 @@ export default function AuditChat({
               onClick={() => sendMessage(input)}
               disabled={showContinueButton || !input.trim()}
               aria-label="Send message"
-              className="focus-ring shrink-0 w-[34px] h-[34px] rounded-full bg-fordham-maroon text-white disabled:opacity-40 disabled:bg-gray-400 dark:disabled:bg-gray-600 hover:bg-opacity-90 active:scale-90 transition-all duration-200 ease-spring inline-flex items-center justify-center"
+              className="focus-ring shrink-0 w-[34px] h-[34px] rounded-full bg-fordham-maroon text-white disabled:opacity-40 disabled:bg-stone-400 dark:disabled:bg-stone-600 hover:bg-opacity-90 active:scale-90 transition-all duration-200 ease-spring inline-flex items-center justify-center"
             >
               {/* Arrow-up glyph, drawn — no icon dependency. */}
               <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none">
