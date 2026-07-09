@@ -770,7 +770,7 @@ export default function AuditChat({
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
-                  className="focus-ring block w-full text-left px-1 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:text-fordham-maroon dark:hover:text-fordham-maroon-ink transition-colors"
+                  className="focus-ring block w-full text-left px-1 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:text-fordham-maroon dark:hover:text-fordham-maroon-ink active:bg-gray-50 dark:active:bg-gray-800/60 transition-colors"
                 >
                   {s}
                 </button>
@@ -825,7 +825,7 @@ export default function AuditChat({
           <div className="flex justify-center pt-2 pb-1">
             <button
               onClick={continueToChat}
-              className="px-4 py-2 rounded-lg bg-fordham-maroon text-white text-sm font-medium hover:bg-fordham-maroon/90 transition-colors shadow-sm"
+              className="focus-ring px-4 py-2 rounded-full bg-fordham-maroon text-white text-sm font-medium hover:bg-fordham-maroon/90 active:scale-95 transition-all duration-200 ease-spring shadow-sm"
             >
               Continue to chat →
             </button>
@@ -894,13 +894,14 @@ export default function AuditChat({
 
       {/* Input — disabled while the Continue-to-chat gate is showing so the
           student reads the wrap-up + saved memories before the next turn. */}
-      <div className="p-3 border-t border-gray-100 dark:border-gray-800 shrink-0">
-        {/* items-end: when the textarea grows, Send/Stop stay their natural
-            height anchored at the baseline — not a full-height slab. */}
+      <div className="px-3 pb-3 pt-2 border-t border-gray-200/70 dark:border-gray-800 shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
+        {/* The iMessage composer contract (ADR 0031): a pill field with a
+            circular action button anchored at the baseline. items-end keeps
+            the circle at the bottom while the textarea grows. */}
         <div className="flex items-end gap-2">
-          {/* field-sizing:content grows the box with the message up to ~5
+          {/* field-sizing:content grows the box with the message up to ~6
               lines; Enter sends, Shift+Enter breaks the line — the messenger
-              contract. Implements: ADR 0024. */}
+              contract. Implements: ADR 0024. 18px radius = one bubble. */}
           <textarea
             rows={1}
             value={input}
@@ -912,33 +913,37 @@ export default function AuditChat({
               }
             }}
             placeholder={
-              showContinueButton
-                ? "Press Continue to start chat…"
-                : "Ask about your requirements..."
+              showContinueButton ? "Press Continue to start chat…" : "Ask anything…"
             }
             disabled={loading || showContinueButton}
             aria-label="Message the advisor"
-            className="focus-ring flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm [field-sizing:content] max-h-36 resize-none disabled:opacity-50"
+            className="focus-ring flex-1 px-3.5 py-[7px] rounded-[18px] border border-gray-300 dark:border-gray-700 bg-transparent text-sm leading-relaxed [field-sizing:content] max-h-36 resize-none disabled:opacity-50 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
           {loading ? (
             <button
               onClick={cancelStream}
               aria-label="Stop generating"
-              className="px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded-xl text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-500 transition-colors inline-flex items-center gap-1.5"
+              className="focus-ring shrink-0 w-[34px] h-[34px] rounded-full bg-gray-700 dark:bg-gray-600 text-white hover:bg-gray-800 dark:hover:bg-gray-500 active:scale-90 transition-all duration-200 ease-spring inline-flex items-center justify-center"
             >
-              <span
-                aria-hidden
-                className="inline-block w-2.5 h-2.5 rounded-[2px] bg-white"
-              />
-              Stop
+              <span aria-hidden className="block w-2.5 h-2.5 rounded-[2px] bg-white" />
             </button>
           ) : (
             <button
               onClick={() => sendMessage(input)}
               disabled={showContinueButton || !input.trim()}
-              className="px-4 py-2 bg-fordham-maroon text-white rounded-xl text-sm font-medium disabled:opacity-40 hover:bg-opacity-90 transition-colors"
+              aria-label="Send message"
+              className="focus-ring shrink-0 w-[34px] h-[34px] rounded-full bg-fordham-maroon text-white disabled:opacity-40 disabled:bg-gray-400 dark:disabled:bg-gray-600 hover:bg-opacity-90 active:scale-90 transition-all duration-200 ease-spring inline-flex items-center justify-center"
             >
-              Send
+              {/* Arrow-up glyph, drawn — no icon dependency. */}
+              <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M8 12.5V3.5M8 3.5L3.75 7.75M8 3.5l4.25 4.25"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           )}
         </div>

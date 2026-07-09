@@ -66,7 +66,11 @@ export default function Message({
   if (message.role === "user") {
     return (
       <div className="flex justify-end animate-msg-in">
-        <div className="max-w-[85%] px-3 py-2 rounded-2xl rounded-tr-sm bg-fordham-maroon text-white text-[13px] leading-relaxed whitespace-pre-wrap">
+        {/* iMessage bubble geometry: uniform 18px radius, no corner notch —
+            the notch read as a speech-bubble affordance from an older chat
+            idiom. origin-bottom-right so msg-in's scale settles from where
+            the bubble was "sent". */}
+        <div className="max-w-[85%] px-3.5 py-2 rounded-[18px] bg-fordham-maroon text-white text-[13px] leading-relaxed whitespace-pre-wrap origin-bottom-right">
           {message.content}
         </div>
       </div>

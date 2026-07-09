@@ -17,24 +17,34 @@ export default {
           maroon: {
             DEFAULT: "#6B1A1A", // fill anywhere · ink on white (11.75:1)
             ink: "#D98A8A",     // ink + rules on dark surfaces (6.72:1 on gray-900)
-            deep: "#5A1616",    // header fill in dark mode (13.45:1 with white)
           },
-          // Accent only: 2.29:1 on white fails even the 3:1 UI-component floor.
-          // Legible solely against maroon (5.12:1) — nav underline, header rings.
-          gold: "#C8A84B",
+          // `deep` and `gold` were retired with the solid maroon header
+          // (ADR 0031) — gold was only ever legible against that maroon.
         },
       },
-      // Motion marks a state transition; it never decorates. Three enters and
+      // Motion marks a state transition; it never decorates. Four enters and
       // one indeterminate sweep are the whole animation budget — all silenced
-      // by the prefers-reduced-motion block in styles.css.
+      // by the prefers-reduced-motion block in styles.css. Curves are iOS's:
+      // fast start, long soft landing — never linear, never bouncy-cartoon.
+      transitionTimingFunction: {
+        // The UIKit sheet/spring curve. Use for anything that moves.
+        spring: "cubic-bezier(0.32, 0.72, 0, 1)",
+      },
       keyframes: {
         "toast-pop": {
           "0%": { opacity: "0", transform: "translateY(6px) scale(0.96)" },
           "60%": { opacity: "1", transform: "translateY(-1px) scale(1.02)" },
           "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
         },
-        // A message entering the page — 4px of lift, nothing bouncy.
+        // A message entering the page — lift + settle, like a sent iMessage:
+        // a touch of scale so it lands, no overshoot.
         "msg-in": {
+          "0%": { opacity: "0", transform: "translateY(8px) scale(0.98)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        // Tab switch: the incoming page settles up into place. display:none
+        // cancels animations, so re-showing a kept-mounted page replays this.
+        "page-in": {
           "0%": { opacity: "0", transform: "translateY(4px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
@@ -47,7 +57,8 @@ export default {
       },
       animation: {
         "toast-pop": "toast-pop 0.25s ease-out",
-        "msg-in": "msg-in 0.2s ease-out",
+        "msg-in": "msg-in 0.32s cubic-bezier(0.32, 0.72, 0, 1)",
+        "page-in": "page-in 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
         sweep: "sweep 1.4s ease-in-out infinite",
       },
     },

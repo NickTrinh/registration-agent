@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+// Implements: ADR 0031 (native-app surface grammar — grouped settings)
+import { useState, useEffect, type ReactNode } from "react";
 import type { MemoryEntry } from "../../shared/types";
 import Notice from "../components/Notice";
 import {
@@ -281,206 +282,212 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-4 space-y-6 overflow-y-auto h-full">
+    // iOS grouped-settings grammar (ADR 0031): the page is the recessed
+    // surface, each group is a raised rounded card of hairline-divided rows,
+    // the explainer is a small footer BELOW its card — heading-first
+    // documents become label-first controls.
+    <div className="h-full overflow-y-auto bg-gray-100 dark:bg-gray-950 px-4 py-5 space-y-7">
 
       {/* API Key */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Anthropic API Key</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Stored locally in your browser, never sent anywhere except Anthropic.
-          Get one at{" "}
-          <a
-            href="https://console.anthropic.com"
-            target="_blank"
-            rel="noreferrer"
-            className="focus-ring rounded underline text-fordham-maroon dark:text-fordham-maroon-ink"
-          >
-            console.anthropic.com
-          </a>.
-        </p>
-
+      <Section
+        label="Anthropic API Key"
+        footer={
+          <>
+            Stored locally in your browser, never sent anywhere except
+            Anthropic. Get one at{" "}
+            <a
+              href="https://console.anthropic.com"
+              target="_blank"
+              rel="noreferrer"
+              className="focus-ring rounded underline text-fordham-maroon dark:text-fordham-maroon-ink"
+            >
+              console.anthropic.com
+            </a>.
+          </>
+        }
+      >
         {maskedKey && (
-          <div className="flex items-center justify-between mb-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <div className="flex items-center justify-between px-4 py-2.5">
             <span className="text-xs text-gray-800 dark:text-gray-100 font-mono">{maskedKey}</span>
             <button
               onClick={clearKey}
-              className="focus-ring rounded px-1 text-xs text-red-700 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
+              className="focus-ring rounded px-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium active:scale-95 transition-transform"
             >
               Remove
             </button>
           </div>
         )}
-
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 px-4 py-2">
+          {/* Borderless field inside the card row — the row IS the field,
+              like a grouped-table text cell. */}
           <input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && saveKey()}
-            placeholder={maskedKey ? "Enter new key to replace..." : "sk-ant-..."}
+            placeholder={maskedKey ? "Replace key…" : "sk-ant-…"}
             aria-label="Anthropic API key"
-            className="focus-ring flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-mono"
+            className="focus-ring flex-1 min-w-0 py-1 rounded bg-transparent text-sm font-mono placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
           <button
             onClick={saveKey}
             disabled={!apiKey.trim()}
-            className="focus-ring px-4 py-2 bg-fordham-maroon text-white rounded-xl text-sm font-medium disabled:opacity-40 hover:bg-opacity-90"
+            className="focus-ring rounded px-1 text-sm font-medium text-fordham-maroon dark:text-fordham-maroon-ink disabled:opacity-40 active:scale-95 transition-transform"
           >
-            {saved ? "Saved!" : "Save"}
+            {saved ? "Saved ✓" : "Save"}
           </button>
         </div>
-      </div>
-
-      <hr className="border-gray-100 dark:border-gray-800" />
+      </Section>
 
       {/* Student Profile */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Student Profile</h2>
-          <div className="flex items-center gap-3">
+      <Section
+        label="Student Profile"
+        labelAction={
+          <span className="flex items-center gap-3">
             {!editing && profile && (
-              <button onClick={startEdit} className="focus-ring rounded px-1 text-xs text-fordham-maroon dark:text-fordham-maroon-ink hover:underline">
+              <button onClick={startEdit} className="focus-ring rounded px-1 text-xs font-medium text-fordham-maroon dark:text-fordham-maroon-ink active:scale-95 transition-transform">
                 Edit
               </button>
             )}
             <button
               onClick={refreshProfile}
               disabled={refreshing || editing}
-              className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400 hover:underline disabled:opacity-40"
+              className="focus-ring rounded px-1 text-xs font-medium text-fordham-maroon dark:text-fordham-maroon-ink disabled:opacity-40 active:scale-95 transition-transform"
             >
               {refreshing ? "Refreshing…" : "Refresh"}
             </button>
-          </div>
-        </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Auto-extracted from your DegreeWorks audit. Injected into every chat session as memory.
-          {profileDate && <span className="ml-1 text-gray-600 dark:text-gray-400">Last updated {profileDate}.</span>}
-        </p>
-
+          </span>
+        }
+        footer={
+          <>
+            Auto-extracted from your DegreeWorks audit. Injected into every
+            chat session as memory.
+            {profileDate && <span className="ml-1">Last updated {profileDate}.</span>}
+          </>
+        }
+      >
         {editing ? (
-          <div className="space-y-2">
+          <div className="px-4 py-3 space-y-2">
             <textarea
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               rows={10}
               aria-label="Student profile"
-              className="focus-ring w-full text-xs text-gray-800 dark:text-gray-100 bg-transparent border border-fordham-maroon dark:border-fordham-maroon-ink rounded-lg p-3 font-mono leading-relaxed resize-none"
+              className="focus-ring w-full text-xs text-gray-800 dark:text-gray-100 bg-gray-50 dark:bg-gray-800 rounded-lg p-3 font-mono leading-relaxed resize-none"
             />
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-4 justify-end">
               <button
                 onClick={cancelEdit}
-                className="focus-ring px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="focus-ring rounded px-1 text-sm text-gray-600 dark:text-gray-400 active:scale-95 transition-transform"
               >
                 Cancel
               </button>
               <button
                 onClick={saveEdit}
                 disabled={!editValue.trim()}
-                className="focus-ring px-3 py-1.5 text-xs bg-fordham-maroon text-white rounded-lg disabled:opacity-40 hover:bg-opacity-90"
+                className="focus-ring rounded px-1 text-sm font-medium text-fordham-maroon dark:text-fordham-maroon-ink disabled:opacity-40 active:scale-95 transition-transform"
               >
                 Save
               </button>
             </div>
           </div>
         ) : profile ? (
-          <pre className="text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 whitespace-pre-wrap font-mono leading-relaxed">
+          <pre className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
             {profile}
           </pre>
         ) : (
-          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
             No profile yet. Visit your DegreeWorks page to generate one automatically.
           </div>
         )}
-      </div>
-
-      <hr className="border-gray-100 dark:border-gray-800" />
+      </Section>
 
       {/* Long-Term Memory */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Long-Term Memory</h2>
-          {memories.length > 0 &&
-            (pendingClearAll ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Delete all?</span>
-                <button
-                  onClick={clearAllMemories}
-                  className="focus-ring rounded px-2 py-0.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => setPendingClearAll(false)}
-                  className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400 hover:underline"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
+      <Section
+        label="Long-Term Memory"
+        labelAction={
+          memories.length > 0 &&
+          (pendingClearAll ? (
+            <span className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Delete all?</span>
               <button
-                onClick={() => setPendingClearAll(true)}
-                className="focus-ring rounded px-1 text-xs text-red-700 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
+                onClick={clearAllMemories}
+                className="focus-ring rounded-full px-2 py-0.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-transform"
               >
-                Clear all
+                Delete
               </button>
-            ))}
-        </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Durable facts the advisor has learned about you. Injected as a routing
-          index into every chat so recommendations fit your situation.
-        </p>
-
-        {/* Auto-save toggle */}
-        <label className="flex items-center justify-between gap-3 px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
-              Auto-save memories from chat
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-400 leading-snug">
-              When ON, the advisor learns durable facts from normal conversation.
-              When OFF, memories only save via onboarding or explicit "remember" requests.
-            </div>
-          </div>
+              <button
+                onClick={() => setPendingClearAll(false)}
+                className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400"
+              >
+                Cancel
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => setPendingClearAll(true)}
+              className="focus-ring rounded px-1 text-xs font-medium text-red-600 dark:text-red-400 active:scale-95 transition-transform"
+            >
+              Clear All
+            </button>
+          ))
+        }
+        footer={
+          <>
+            Durable facts the advisor has learned about you, injected into
+            every chat. Auto-save ON lets the advisor learn from normal
+            conversation; OFF limits saves to onboarding and explicit
+            "remember this" requests.
+          </>
+        }
+      >
+        {/* Auto-save toggle — row title + switch; the explanation lives in
+            the section footer, where iOS puts it. */}
+        <label className="flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer">
+          <span className="text-sm text-gray-900 dark:text-gray-100">
+            Auto-save memories from chat
+          </span>
           <button
             onClick={toggleAutoSave}
             role="switch"
             aria-checked={autoSaveEnabled}
             aria-label="Auto-save memories from chat"
-            className={`focus-ring shrink-0 relative inline-flex h-5 w-9 rounded-full transition-colors ${
+            className={`focus-ring shrink-0 relative inline-flex h-6 w-10 rounded-full transition-colors duration-200 ${
               autoSaveEnabled ? "bg-fordham-maroon" : "bg-gray-300 dark:bg-gray-600"
             }`}
           >
             <span
-              className={`absolute top-0.5 inline-block h-4 w-4 rounded-full bg-white transition-transform ${
-                autoSaveEnabled ? "translate-x-4" : "translate-x-0.5"
+              className={`absolute top-0.5 inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ease-spring ${
+                autoSaveEnabled ? "translate-x-[18px]" : "translate-x-0.5"
               }`}
             />
           </button>
         </label>
 
         {memories.length === 0 ? (
-          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
             No memories yet. They'll appear here as you chat — or start by
             completing onboarding in the Advisor tab.
           </div>
         ) : (
-          <div className="space-y-2">
+          <>
             {memories.map((m) => (
               <div
                 key={m.id}
-                className="flex items-start gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+                className="flex items-start gap-2 px-4 py-2.5"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[11px] uppercase tracking-wide font-semibold text-fordham-maroon dark:text-fordham-maroon-ink bg-fordham-maroon/10 dark:bg-fordham-maroon-ink/10 px-1.5 py-0.5 rounded">
-                      {m.type}
-                    </span>
-                    {editingId === m.id ? null : (
-                      <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {m.description}
+                  {/* Payload leads, metadata follows: the description is why
+                      the student is reading this row — it wraps instead of
+                      truncating behind the type chip. */}
+                  {editingId !== m.id && (
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug mb-0.5">
+                      {m.description}
+                      <span className="ml-1.5 align-middle text-[10px] uppercase tracking-wide font-semibold text-fordham-maroon dark:text-fordham-maroon-ink bg-fordham-maroon/10 dark:bg-fordham-maroon-ink/10 px-1.5 py-0.5 rounded-full">
+                        {m.type}
                       </span>
-                    )}
-                  </div>
+                    </p>
+                  )}
                   {editingId === m.id ? (
                     <div className="space-y-1.5">
                       <input
@@ -489,7 +496,7 @@ export default function Settings() {
                         onChange={(e) => setEditDraftDescription(e.target.value)}
                         placeholder="Description (≤10 words)"
                         aria-label="Memory description"
-                        className="focus-ring w-full text-xs px-2 py-1 bg-transparent border border-fordham-maroon dark:border-fordham-maroon-ink rounded"
+                        className="focus-ring w-full text-xs px-2 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg"
                       />
                       <textarea
                         value={editDraftContent}
@@ -497,7 +504,7 @@ export default function Settings() {
                         placeholder="Content (1–3 sentences)"
                         rows={3}
                         aria-label="Memory content"
-                        className="focus-ring w-full text-xs px-2 py-1 bg-transparent border border-fordham-maroon dark:border-fordham-maroon-ink rounded resize-none leading-snug"
+                        className="focus-ring w-full text-xs px-2 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg resize-none leading-snug"
                       />
                       <div className="flex justify-end gap-2">
                         <button
@@ -552,74 +559,79 @@ export default function Settings() {
                 )}
               </div>
             ))}
-          </div>
+          </>
         )}
 
-        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
-          {rerunDone ? (
+        {/* Destructive row, iOS-style: red text row at the bottom of the
+            group; two-step confirm swaps the row in place. */}
+        {rerunDone ? (
+          <div className="px-4 py-2.5">
             <Notice
               severity="info"
               title="Onboarding reset"
               body="Head to the Advisor tab — the welcome card is back."
               onDismiss={() => setRerunDone(false)}
             />
-          ) : pendingRerun ? (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-800 dark:text-gray-100 leading-snug">
-                This deletes everything the advisor has learned about you and
-                restarts the intake. Your audit, API key, and catalog stay intact.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={rerunOnboarding}
-                  className="focus-ring rounded px-2 py-1 text-xs font-medium bg-red-600 text-white hover:bg-red-700"
-                >
-                  Delete memories and re-run
-                </button>
-                <button
-                  onClick={() => setPendingRerun(false)}
-                  className="focus-ring rounded px-2 py-1 text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
+          </div>
+        ) : pendingRerun ? (
+          <div className="px-4 py-3 space-y-2">
+            <p className="text-xs text-gray-800 dark:text-gray-100 leading-snug">
+              This deletes everything the advisor has learned about you and
+              restarts the intake. Your audit, API key, and catalog stay intact.
+            </p>
+            <div className="flex gap-3 items-center">
               <button
-                onClick={() => setPendingRerun(true)}
-                className="focus-ring rounded px-1 text-xs text-fordham-maroon dark:text-fordham-maroon-ink hover:underline font-medium"
+                onClick={rerunOnboarding}
+                className="focus-ring rounded-full px-3 py-1 text-xs font-medium bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-transform"
               >
-                ↻ Re-run onboarding (wipes memories)
+                Delete memories and re-run
               </button>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-snug">
-                Clears everything the advisor has learned about you and restarts the
-                intake conversation on the Advisor tab. Your audit, API key, and
-                catalog stay intact.
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-
-      <hr className="border-gray-100 dark:border-gray-800" />
+              <button
+                onClick={() => setPendingRerun(false)}
+                className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setPendingRerun(true)}
+            className="focus-ring w-full text-left px-4 py-2.5 group"
+          >
+            <span className="block text-sm font-medium text-red-600 dark:text-red-400 group-active:scale-[0.98] origin-left transition-transform">
+              Re-run Onboarding
+            </span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Wipes memories and restarts the intake. Audit, key, and catalog stay.
+            </span>
+          </button>
+        )}
+      </Section>
 
       {/* Course Catalog */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Course Catalog</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Pulls real Fordham sections from Banner — CRNs, meeting times, seats. Claude searches this when recommending courses.
-          {catalogTerm && catalogCourseCount > 0 && (
-            <span className="ml-1 text-gray-600 dark:text-gray-400">
-              {catalogCourseCount} courses loaded for {
-                terms.find((t) => t.code === catalogTerm)?.description ?? catalogTerm
-              }
-              {catalogUpdatedAt && ` · ${formatCatalogDate(catalogUpdatedAt)}`}
-            </span>
-          )}
-        </p>
-
-        <div className="flex gap-2 mb-3">
+      <Section
+        label="Course Catalog"
+        footer={
+          <>
+            Real Fordham sections from Banner — CRNs, meeting times, seats.
+            The advisor searches this when recommending courses.{" "}
+            {catalogTerm && catalogCourseCount > 0 ? (
+              <>
+                {catalogCourseCount.toLocaleString()} courses loaded for{" "}
+                {terms.find((t) => t.code === catalogTerm)?.description ?? catalogTerm}
+                {catalogUpdatedAt && ` · ${formatCatalogDate(catalogUpdatedAt)}`}.
+              </>
+            ) : (
+              !catalogRefreshing &&
+              !catalogError && (
+                <>No catalog loaded yet — pick a term and hit Refresh (~30–60 s).</>
+              )
+            )}
+          </>
+        }
+      >
+        <div className="flex items-center gap-2 px-4 py-2">
           {/* No custom dropdown. `color-scheme` (styles.css + applyTheme) is
               what makes the native <select> AND its popup follow the theme. */}
           <select
@@ -627,7 +639,7 @@ export default function Settings() {
             onChange={(e) => setSelectedTerm(e.target.value)}
             disabled={catalogRefreshing || terms.length === 0}
             aria-label="Catalog term"
-            className="focus-ring flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm bg-transparent disabled:opacity-40"
+            className="focus-ring flex-1 min-w-0 py-1 rounded text-sm bg-transparent disabled:opacity-40"
           >
             {terms.length === 0 && <option value="">Loading terms…</option>}
             {terms.map((t) => (
@@ -639,23 +651,23 @@ export default function Settings() {
           <button
             onClick={refreshCatalog}
             disabled={catalogRefreshing || !selectedTerm}
-            className="focus-ring px-4 py-2 bg-fordham-maroon text-white rounded-xl text-sm font-medium disabled:opacity-40 hover:bg-opacity-90"
+            className="focus-ring rounded px-1 text-sm font-medium text-fordham-maroon dark:text-fordham-maroon-ink disabled:opacity-40 active:scale-95 transition-transform"
           >
             {catalogRefreshing ? "Loading…" : "Refresh"}
           </button>
         </div>
 
         {catalogRefreshing && catalogProgress && (
-          <div className="mb-2">
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+          <div className="px-4 py-2.5">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
               <span>Fetching {catalogProgress.label}</span>
               <span>
                 {catalogProgress.done} / {catalogProgress.total}
               </span>
             </div>
-            <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-fordham-maroon transition-all duration-200"
+                className="h-full bg-fordham-maroon dark:bg-fordham-maroon-ink rounded-full transition-all duration-200 ease-spring"
                 style={{
                   width: `${
                     catalogProgress.total > 0
@@ -671,111 +683,142 @@ export default function Settings() {
         {/* An expired session is recoverable and says where; an opaque failure
             is not, and says that instead of offering a button that re-fails.
             The second step ("now hit Refresh") needs no slot — that control is
-            three inches up this same screen. */}
+            one row up this same card. */}
         {catalogError?.expired && catalogError.recoveryUrl ? (
-          <Notice
-            severity="warn"
-            title="Fordham registration session expired"
-            body={catalogError.message}
-            action={{ label: "Open Browse Classes", href: catalogError.recoveryUrl }}
-            onDismiss={() => setCatalogError(null)}
-          />
-        ) : catalogError ? (
-          <Notice
-            severity="error"
-            title="Catalog refresh failed"
-            body={catalogError.message}
-            onDismiss={() => setCatalogError(null)}
-          />
-        ) : null}
-
-        {!catalogRefreshing && !catalogError && catalogCourseCount === 0 && (
-          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-            No catalog loaded yet. Pick a term and hit Refresh — takes ~30–60 seconds.
+          <div className="px-4 py-2.5">
+            <Notice
+              severity="warn"
+              title="Fordham registration session expired"
+              body={catalogError.message}
+              action={{ label: "Open Browse Classes", href: catalogError.recoveryUrl }}
+              onDismiss={() => setCatalogError(null)}
+            />
           </div>
-        )}
-      </div>
-
-      <hr className="border-gray-100 dark:border-gray-800" />
+        ) : catalogError ? (
+          <div className="px-4 py-2.5">
+            <Notice
+              severity="error"
+              title="Catalog refresh failed"
+              body={catalogError.message}
+              onDismiss={() => setCatalogError(null)}
+            />
+          </div>
+        ) : null}
+      </Section>
 
       {/* Raw Audit Text */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Raw Audit Data</h2>
-          {auditText && (
+      <Section
+        label="Raw Audit Data"
+        labelAction={
+          auditText && (
             <button
               onClick={() => setShowAudit((v) => !v)}
-              className="focus-ring rounded px-1 text-xs text-fordham-maroon dark:text-fordham-maroon-ink hover:underline"
+              className="focus-ring rounded px-1 text-xs font-medium text-fordham-maroon dark:text-fordham-maroon-ink active:scale-95 transition-transform"
             >
               {showAudit ? "Hide" : "Show"}
             </button>
-          )}
-        </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          The exact text Claude reads from your DegreeWorks page each session.
-          {auditText && (
-            <span className="ml-1 text-gray-600 dark:text-gray-400">
-              {Math.round(auditText.length / 1000)}k chars · ~{Math.round(auditText.length / 4)} tokens
-            </span>
-          )}
-        </p>
-
+          )
+        }
+        footer={
+          <>
+            The exact text Claude reads from your DegreeWorks page each session.
+            {auditText && (
+              <span className="ml-1">
+                {Math.round(auditText.length / 1000)}k chars · ~{Math.round(auditText.length / 4)} tokens.
+              </span>
+            )}
+          </>
+        }
+      >
         {!auditText ? (
-          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
             No audit captured yet. Visit your DegreeWorks page.
           </div>
         ) : showAudit ? (
-          <pre className="text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto">
+          <pre className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto">
             {auditText}
           </pre>
         ) : (
-          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
             {auditText.substring(0, 120).trim()}…
           </div>
         )}
-      </div>
-
-      <hr className="border-gray-100 dark:border-gray-800" />
+      </Section>
 
       {/* Appearance */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Appearance</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          System default follows your operating-system dark-mode setting.
-        </p>
-        <div
-          role="radiogroup"
-          aria-label="Theme"
-          className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
-        >
-          {(["light", "system", "dark"] as const).map((option) => (
-            <button
-              key={option}
-              role="radio"
-              aria-checked={theme === option}
-              onClick={() => selectTheme(option)}
-              className={`focus-ring flex-1 text-xs font-medium py-2 transition-colors capitalize ${
-                theme === option
-                  ? "bg-fordham-maroon text-white"
-                  : "bg-transparent text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
+      <Section
+        label="Appearance"
+        footer="System follows your operating-system dark-mode setting."
+      >
+        {/* Same segmented-control grammar as the header nav. */}
+        <div className="px-4 py-2.5">
+          <div
+            role="radiogroup"
+            aria-label="Theme"
+            className="flex rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5"
+          >
+            {(["light", "system", "dark"] as const).map((option) => (
+              <button
+                key={option}
+                role="radio"
+                aria-checked={theme === option}
+                onClick={() => selectTheme(option)}
+                className={`focus-ring flex-1 rounded-md text-xs font-medium py-1.5 capitalize transition-all duration-200 ease-spring active:scale-95 ${
+                  theme === option
+                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-50 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      </Section>
 
-      <hr className="border-gray-100 dark:border-gray-800" />
-
-      {/* About */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">About</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-          RamPlan reads your DegreeWorks audit and uses Claude AI (Sonnet for chat, Haiku for profile extraction) to help you plan your courses. All data is stored locally in your browser.
-        </p>
-      </div>
+      {/* About — footer-only, like the fine print at the bottom of an iOS
+          settings page. */}
+      <p className="px-4 pb-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+        RamPlan reads your DegreeWorks audit and uses Claude AI (Sonnet for
+        chat, Haiku for profile extraction) to help you plan your courses.
+        All data is stored locally in your browser.
+      </p>
 
     </div>
+  );
+}
+
+// One settings group in the iOS grouped-table grammar: small-caps label
+// (optionally with a trailing action), a raised card whose children are
+// hairline-divided rows, and the explainer as a footer below the card.
+// Implements: ADR 0031.
+function Section({
+  label,
+  labelAction,
+  footer,
+  children,
+}: {
+  label: string;
+  labelAction?: ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section>
+      <div className="flex items-center justify-between px-4 mb-1.5">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          {label}
+        </h2>
+        {labelAction}
+      </div>
+      <div className="rounded-2xl bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800 overflow-hidden">
+        {children}
+      </div>
+      {footer && (
+        <p className="px-4 mt-1.5 text-xs text-gray-500 dark:text-gray-400 leading-snug">
+          {footer}
+        </p>
+      )}
+    </section>
   );
 }

@@ -43,16 +43,56 @@ interface Scenario {
 
 // ─── Fabricated data (no real students, no real advisors) ────────────────────
 
+const AUDIT = "Student: [NAME] · BS Computer Science · 96/124 credits (mock)";
+const PROFILE =
+  "Name: [NAME]\nProgram: BS Computer Science, class of 2027\nStanding: Junior · 96/124 credits\nCore: complete except EP3 + Pluralism\nGPA band: dean's-list range (mock)";
+
 const LOCAL_READY = {
   anthropicApiKey: "sk-ant-dev-mock",
   catalogCourseCount: 3247,
   studentFirstName: "Ava",
   studentAdvisorName: "Dr. R. Ramsey",
   studentAdvisorEmail: "advisor@example.edu",
+  // Settings page reads these straight from storage.local.
+  auditText: AUDIT,
+  studentProfile: PROFILE,
+  profileGeneratedAt: 1751980000000,
 };
 
-const AUDIT = "Student: [NAME] · BS Computer Science · 96/124 credits (mock)";
-const PROFILE = "Mock profile: CS major, junior standing, core mostly done.";
+const MEMORIES = [
+  {
+    id: 1,
+    type: "constraint",
+    description: "Works Tuesday/Thursday mornings",
+    content: "Ava works a campus job Tuesday and Thursday mornings until 11am, so sections before 11:30 on those days don't fit.",
+    sourceQuote: "I work Tuesday and Thursday mornings",
+    createdAt: 1751880000000,
+    lastAccessedAt: 1751980000000,
+  },
+  {
+    id: 2,
+    type: "goal",
+    description: "Wants to graduate a semester early",
+    content: "Aiming to finish by December 2026 by front-loading core requirements.",
+    sourceQuote: "I'd love to be done a semester early if it's possible",
+    createdAt: 1751880000000,
+    lastAccessedAt: 1751980000000,
+  },
+  {
+    id: 3,
+    type: "interest",
+    description: "Prefers seminars over lectures",
+    content: "Consistently picks discussion-heavy sections when both formats exist.",
+    createdAt: 1751880000000,
+    lastAccessedAt: 1751980000000,
+  },
+];
+
+const TERMS = [
+  { code: "202710", description: "Fall 2026" },
+  { code: "202630", description: "Summer 2026" },
+  { code: "202620", description: "Spring 2026" },
+];
 
 const CHAT_SESSION: ConversationMessage[] = [
   {
@@ -114,19 +154,19 @@ const SAVES_SESSION: ConversationMessage[] = [
       done: false,
       items: [
         {
-          type: "hard_fact",
+          type: "note",
           description: "Major: Computer Science, class of 2027",
           sourceQuote: "I'm a CS major graduating in 2027",
           status: "saved",
         },
         {
-          type: "hard_fact",
+          type: "constraint",
           description: "Works Tuesday/Thursday mornings",
           sourceQuote: "I work Tuesday and Thursday mornings",
           status: "saved",
         },
         {
-          type: "preference",
+          type: "interest",
           description: "Prefers seminars over lectures",
           status: "pending",
         },
@@ -165,7 +205,7 @@ const READY_BASE: Scenario = {
   auditText: AUDIT,
   profile: PROFILE,
   onboardingCompletedAt: 1751970000000,
-  memories: [{ id: 1 }, { id: 2 }, { id: 3 }],
+  memories: MEMORIES,
   onChat: chatScript(),
 };
 
@@ -302,6 +342,18 @@ export function installChromeMock(): void {
             return reply({ completedAt: scenario.onboardingCompletedAt });
           case "GET_MEMORIES":
             return reply({ memories: scenario.memories });
+          case "GET_AUTO_SAVE":
+            return reply({ enabled: true });
+          case "GET_CATALOG_TERMS":
+            return reply({ terms: TERMS });
+          case "GET_CATALOG_STATUS": {
+            const count = (scenario.local as { catalogCourseCount?: number }).catalogCourseCount ?? 0;
+            return reply(
+              count > 0
+                ? { term: "202710", courseCount: count, updatedAt: 1751980000000 }
+                : { term: null, courseCount: 0, updatedAt: null }
+            );
+          }
           case "AI_CHAT":
             if (scenario.onChat) play(scenario.onChat);
             return reply({ ok: true });

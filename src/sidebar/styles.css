@@ -28,19 +28,14 @@ body {
 
 @layer components {
   /* Maroon is an 11.75:1 ink on white and a 1.51:1 ink on gray-900, so the
-     ring has to swap with the theme. Gold is 2.29:1 on white — it is only ever
-     a ring on the maroon header, where it reaches 5.12:1. */
+     ring has to swap with the theme. (focus-ring-on-maroon and the gold it
+     used left with the solid maroon header — ADR 0031.) */
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2
            focus-visible:ring-fordham-maroon focus-visible:ring-offset-1
            focus-visible:ring-offset-white
            dark:focus-visible:ring-fordham-maroon-ink
            dark:focus-visible:ring-offset-gray-900;
-  }
-
-  .focus-ring-on-maroon {
-    @apply focus-visible:outline-none focus-visible:ring-2
-           focus-visible:ring-fordham-gold;
   }
 }
 

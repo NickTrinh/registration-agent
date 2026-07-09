@@ -1,3 +1,4 @@
+// Implements: ADR 0031 (native-app surface grammar — chrome + navigation)
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import AuditChat from "./pages/AuditChat";
 import Settings from "./pages/Settings";
@@ -46,17 +47,22 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-900">
-      {/* The header is the brand anchor and the one element that does not move
-          between themes — it stays maroon, deepening to `maroon.deep` in dark
-          so it doesn't glow against a dark page (13.45:1 with white). */}
-      <header className="flex items-center justify-between px-4 py-2.5 bg-fordham-maroon dark:bg-fordham-maroon-deep text-white shadow-sm shrink-0">
+      {/* Native-app chrome (ADR 0031): a light translucent bar with a hairline,
+          not a solid maroon slab — the brand lives in the maroon serif
+          wordmark and every accent below, the way Messages carries blue
+          without painting its navigation bar blue. backdrop-blur matters the
+          moment content scrolls beneath the bar. */}
+      <header className="flex items-center justify-between pl-4 pr-2 py-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/70 dark:border-gray-800 shrink-0 z-10">
         {/* Tailwind's stock `font-serif` — no webfont, no dependency, on every
-            machine. It is the cheapest change that stops the panel reading as
-            a generic chat app. */}
-        <span className="font-serif text-[15px] font-semibold tracking-tight">
+            machine. Maroon ink on the light bar; `maroon.ink` on dark. */}
+        <span className="font-serif text-[16px] font-semibold tracking-tight text-fordham-maroon dark:text-fordham-maroon-ink select-none">
           RamPlan
         </span>
-        <nav className="flex gap-1">
+        {/* iOS segmented control: gray track, raised active segment. */}
+        <nav
+          className="flex rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5"
+          aria-label="Pages"
+        >
           <NavButton active={page === "chat"} onClick={() => setPage("chat")}>
             Advisor
           </NavButton>
@@ -68,16 +74,18 @@ export default function App() {
 
       {/* Page Content — both pages stay mounted so the AuditChat's
           onMessage listener keeps receiving AI_CHUNK broadcasts even
-          while the user is on the Settings tab mid-stream. */}
+          while the user is on the Settings tab mid-stream. display:none
+          cancels CSS animations, so animate-page-in replays on each
+          re-show — the tab switch settles instead of snapping. */}
       <main className="flex-1 overflow-hidden relative">
         <div
-          className="absolute inset-0 flex flex-col"
+          className="absolute inset-0 flex flex-col animate-page-in"
           style={{ display: page === "chat" ? "flex" : "none" }}
         >
           <AuditChat onOpenSettings={() => setPage("settings")} />
         </div>
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 animate-page-in"
           style={{ display: page === "settings" ? "block" : "none" }}
         >
           <Settings />
@@ -96,17 +104,14 @@ function NavButton({
   active: boolean;
   onClick: () => void;
 }) {
-  // Gold appears exactly twice in the product: this 2px underline (5.12:1 on
-  // maroon) and the focus ring on header controls. It fails every contrast
-  // floor on white, so it never leaves this bar.
   return (
     <button
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`focus-ring-on-maroon rounded-sm px-2 py-1 text-sm font-medium border-b-2 transition-colors ${
+      className={`focus-ring rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-200 ease-spring active:scale-95 ${
         active
-          ? "border-fordham-gold text-white"
-          : "border-transparent text-white/70 hover:text-white"
+          ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-50 shadow-sm"
+          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
       }`}
     >
       {children}
