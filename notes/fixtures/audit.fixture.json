@@ -1,0 +1,392 @@
+{
+  "_comment": "FABRICATED test fixture — NOT real student data. Structurally mirrors a live DegreeWorks AuditResponse (see src/shared/degreeworks-types.ts + notes/degreeworks-api-reference.md). PII fields below (studentName, studentId, advisorName, advisorEmail) are deliberately populated with fake values so the PII-regression test can prove the renderer drops them by construction (ADR 0009 / ADR 0018). Covers: a complete block, an in-progress rule, an incomplete rule with a withArray ATTRIBUTE clause, a concentration (Subset) with sibling rules, and a bare-incomplete rule.",
+  "auditHeader": {
+    "auditId": "0",
+    "studentId": "A00000000",
+    "auditType": "AA",
+    "studentName": "Doe, Jane A",
+    "studentEmail": "jane.doe@example.edu",
+    "freezeType": "",
+    "freezeTypeDescription": "",
+    "freezeDate": "",
+    "freezeUserName": "",
+    "auditDescription": "",
+    "dateYear": "2026",
+    "dateMonth": "07",
+    "dateDay": "07",
+    "timeHour": "12",
+    "timeMinute": "00",
+    "studentSystemGpa": "3.60",
+    "degreeworksGpa": "3.60",
+    "percentComplete": "72",
+    "version": "1",
+    "inProgress": "Y",
+    "whatIf": "N",
+    "residentApplied": "84",
+    "residentAppliedInProgress": "12",
+    "transferApplied": "6",
+    "examAppliedCredits": "0",
+    "residentOverTheLimit": "0",
+    "residentOverTheLimitInProgress": "0",
+    "transferOverTheLimit": "0",
+    "examOverTheLimit": "0"
+  },
+  "blockArray": [
+    {
+      "requirementId": "RA000001",
+      "requirementType": "CORE",
+      "requirementValue": "CORE",
+      "title": "Core Curriculum",
+      "percentComplete": "100",
+      "catalogYearStart": "2023",
+      "catalogYearStop": "2024",
+      "catalogYear": "2024",
+      "catalogYearLit": "2023-2024",
+      "degree": "BS",
+      "college": "FC",
+      "gpa": "3.60",
+      "classesApplied": "10",
+      "creditsApplied": "30",
+      "gpaGradePoints": "0",
+      "gpaCredits": "0",
+      "header": {
+        "qualifierArray": [
+          {
+            "nodeId": "q1",
+            "nodeType": "0",
+            "name": "MINCREDITS",
+            "text": "Minimum 30 credits of core curriculum required",
+            "subTextList": []
+          }
+        ],
+        "remark": { "textList": [] },
+        "display": { "textArray": [] },
+        "advice": { "textArray": [] }
+      },
+      "ruleArray": [
+        {
+          "label": "American Pluralism",
+          "labelTag": "",
+          "percentComplete": "100",
+          "ruleId": "1-0",
+          "nodeId": "n1",
+          "nodeType": "0",
+          "indentLevel": "1",
+          "ruleType": "Complete",
+          "remark": { "textList": ["Satisfied by HIST 1000."] },
+          "requirement": { "classCreditOperator": "OR", "connector": "", "courseArray": [] }
+        },
+        {
+          "label": "Understanding Historical Change",
+          "labelTag": "",
+          "percentComplete": "100",
+          "ruleId": "1-1",
+          "nodeId": "n2",
+          "nodeType": "0",
+          "indentLevel": "1",
+          "ruleType": "Complete",
+          "requirement": { "classCreditOperator": "OR", "connector": "", "courseArray": [] }
+        }
+      ]
+    },
+    {
+      "requirementId": "RA000115",
+      "requirementType": "MAJOR",
+      "requirementValue": "NEUR",
+      "title": "Major in Integrative Neuroscience",
+      "percentComplete": "60",
+      "catalogYearStart": "2023",
+      "catalogYearStop": "2024",
+      "catalogYear": "2024",
+      "catalogYearLit": "2023-2024",
+      "degree": "BS",
+      "college": "FC",
+      "gpa": "3.70",
+      "classesApplied": "6",
+      "creditsApplied": "18",
+      "gpaGradePoints": "0",
+      "gpaCredits": "0",
+      "header": {
+        "qualifierArray": [
+          {
+            "nodeId": "q2",
+            "nodeType": "0",
+            "name": "MINGPA",
+            "text": "Minimum 2.0 GPA in the major",
+            "subTextList": []
+          },
+          {
+            "nodeId": "q3",
+            "nodeType": "0",
+            "name": "HEADERTAG",
+            "text": "This machinery qualifier should be skipped",
+            "subTextList": []
+          }
+        ],
+        "remark": { "textList": [] },
+        "display": { "textArray": [] },
+        "advice": { "textArray": [] }
+      },
+      "ruleArray": [
+        {
+          "label": "The Fine Arts",
+          "labelTag": "",
+          "percentComplete": "0",
+          "ruleId": "2-0",
+          "nodeId": "n10",
+          "nodeType": "0",
+          "indentLevel": "1",
+          "ruleType": "Course",
+          "requirement": {
+            "classesBegin": "1",
+            "classCreditOperator": "OR",
+            "connector": "",
+            "courseArray": [
+              {
+                "discipline": "@",
+                "number": "@",
+                "nodeId": "c1",
+                "withArray": [
+                  {
+                    "code": "ATTRIBUTE",
+                    "operator": "=",
+                    "connector": "",
+                    "valueList": ["FACC"]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "label": "Neuroscience Core",
+          "labelTag": "",
+          "percentComplete": "50",
+          "ruleId": "2-1",
+          "nodeId": "n11",
+          "nodeType": "0",
+          "indentLevel": "1",
+          "ruleType": "Course",
+          "inProgressIncomplete": "Yes",
+          "classesAppliedToRule": {
+            "classArray": [
+              {
+                "discipline": "NEUR",
+                "number": "2000",
+                "credits": "4",
+                "letterGrade": "",
+                "id": "1",
+                "term": "202710"
+              }
+            ]
+          },
+          "requirement": {
+            "classesBegin": "2",
+            "classCreditOperator": "OR",
+            "connector": "",
+            "courseArray": []
+          }
+        },
+        {
+          "label": "Systems/Computational Concentration",
+          "labelTag": "",
+          "percentComplete": "0",
+          "ruleId": "2-2",
+          "nodeId": "n12",
+          "nodeType": "0",
+          "indentLevel": "1",
+          "ruleType": "Subset",
+          "requirement": { "classCreditOperator": "OR", "connector": "", "courseArray": [] },
+          "ruleArray": [
+            {
+              "label": "Coursework",
+              "labelTag": "",
+              "percentComplete": "0",
+              "ruleId": "2-2-0",
+              "nodeId": "n13",
+              "nodeType": "0",
+              "indentLevel": "2",
+              "ruleType": "Course",
+              "requirement": {
+                "classesBegin": "2",
+                "classCreditOperator": "OR",
+                "connector": "",
+                "courseArray": [
+                  {
+                    "discipline": "@",
+                    "number": "@",
+                    "nodeId": "c2",
+                    "withArray": [
+                      {
+                        "code": "ATTRIBUTE",
+                        "operator": "=",
+                        "connector": "",
+                        "valueList": ["NESY"]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "label": "Research Experience",
+          "labelTag": "",
+          "percentComplete": "0",
+          "ruleId": "2-3",
+          "nodeId": "n14",
+          "nodeType": "0",
+          "indentLevel": "1",
+          "ruleType": "Course",
+          "requirement": {
+            "classesBegin": "1",
+            "classCreditOperator": "OR",
+            "connector": "",
+            "courseArray": [
+              { "discipline": "NEUR", "number": "4990", "nodeId": "c3" }
+            ]
+          }
+        },
+        {
+          "label": "Research Experience Capstone",
+          "labelTag": "",
+          "percentComplete": "0",
+          "ruleId": "2-4",
+          "nodeId": "n15",
+          "nodeType": "0",
+          "indentLevel": "1",
+          "ruleType": "Course",
+          "requirement": {
+            "classesBegin": "1",
+            "classCreditOperator": "OR",
+            "connector": "",
+            "courseArray": [
+              { "discipline": "NEUR", "number": "4999", "nodeId": "c4" }
+            ]
+          }
+        },
+        {
+          "label": "Major Elective",
+          "labelTag": "",
+          "percentComplete": "0",
+          "ruleId": "2-5",
+          "nodeId": "n16",
+          "nodeType": "0",
+          "indentLevel": "1",
+          "ruleType": "Course",
+          "requirement": { "classCreditOperator": "OR", "connector": "", "courseArray": [] }
+        }
+      ]
+    }
+  ],
+  "classInformation": {
+    "classArray": [
+      {
+        "discipline": "NEUR",
+        "number": "2000",
+        "credits": "4",
+        "letterGrade": "",
+        "id": "1",
+        "term": "202710",
+        "courseTitle": "Cellular Neuroscience",
+        "termLiteral": "Fall 2026",
+        "termLiteralLong": "Fall 2026",
+        "recordType": "Course",
+        "status": "",
+        "studentSystemCredits": "4",
+        "inProgress": "Y",
+        "preregistered": "N",
+        "passed": "N",
+        "passfail": "N",
+        "incomplete": "N",
+        "gradePoints": "0",
+        "numericGrade": "0",
+        "gpaGradePoints": "0",
+        "gpaCredits": "0",
+        "section": "L01",
+        "school": "FC",
+        "gradeType": "",
+        "transfer": "N",
+        "equivalenceExists": "N",
+        "locArray": [],
+        "attributeArray": []
+      },
+      {
+        "discipline": "PSYC",
+        "number": "3400",
+        "credits": "3",
+        "letterGrade": "",
+        "id": "2",
+        "term": "202710",
+        "courseTitle": "Cognition",
+        "termLiteral": "Fall 2026",
+        "termLiteralLong": "Fall 2026",
+        "recordType": "Course",
+        "status": "",
+        "studentSystemCredits": "3",
+        "inProgress": "N",
+        "preregistered": "Y",
+        "passed": "N",
+        "passfail": "N",
+        "incomplete": "N",
+        "gradePoints": "0",
+        "numericGrade": "0",
+        "gpaGradePoints": "0",
+        "gpaCredits": "0",
+        "section": "R01",
+        "school": "FC",
+        "gradeType": "",
+        "transfer": "N",
+        "equivalenceExists": "N",
+        "locArray": [],
+        "attributeArray": []
+      }
+    ]
+  },
+  "fallThrough": { "classes": "0", "credits": "0", "classArray": [] },
+  "overTheLimit": { "classes": "0", "credits": "0", "classArray": [] },
+  "insufficient": { "classes": "0", "credits": "0", "classArray": [] },
+  "inProgress": { "classes": "1", "credits": "4", "classArray": [] },
+  "fitList": { "classArray": [] },
+  "splitCredits": { "classes": "0", "credits": "0" },
+  "degreeInformation": {
+    "degreeDataArray": [],
+    "goalArray": [
+      {
+        "code": "MAJOR",
+        "value": "NEUR",
+        "valueLiteral": "Integrative Neuroscience",
+        "catalogYear": "2024"
+      },
+      {
+        "code": "MINOR",
+        "value": "COMC",
+        "valueLiteral": "Computer Science",
+        "catalogYear": "2024"
+      },
+      {
+        "code": "CONC",
+        "value": "NESY",
+        "valueLiteral": "Systems/Computational",
+        "catalogYear": "2024"
+      },
+      {
+        "code": "COLLEGE",
+        "value": "FC",
+        "valueLiteral": "Fordham College at Rose Hill"
+      },
+      {
+        "code": "ADVISOR",
+        "value": "ADV",
+        "valueLiteral": "Academic Advisor",
+        "attachCode": "ACAD",
+        "advisorName": "Advisor, Test",
+        "advisorEmail": "test.advisor@example.edu"
+      }
+    ]
+  },
+  "exceptionList": { "exceptionArray": [] },
+  "notes": {},
+  "flags": {}
+}
