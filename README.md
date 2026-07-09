@@ -27,6 +27,8 @@ In Chrome:
 
 > Use `npm run build`, not `npm run dev`. Vite's HMR client is blocked from the extension origin by Chrome's CORS rules.
 
+> **UI development without the extension:** `npm run dev`, then open `http://localhost:5173/src/sidebar/dev.html?state=chat` — a standalone harness with a mocked `chrome.*` API and fabricated data. See `src/sidebar/dev/chrome-mock.ts` for the full list of `?state=` scenarios (first run, streaming, every notice, dark via `&theme=dark`).
+
 For a guided tour of the feature set (onboarding, course search, what-if audits, memory recall, forget + save commands), see [`notes/TESTING.md`](notes/TESTING.md).
 
 ---
