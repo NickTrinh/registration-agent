@@ -16,8 +16,8 @@ export default function StatusStrip({
   busy?: boolean;
 }) {
   return (
-    <div className="relative shrink-0 h-7 flex items-center px-3 border-b border-gray-100 dark:border-gray-800">
-      <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{text}</p>
+    <div className="relative shrink-0 h-7 flex items-center px-3 border-b border-stone-100 dark:border-stone-800">
+      <p className="text-xs text-stone-600 dark:text-stone-400 truncate">{text}</p>
       {busy && (
         <span
           aria-hidden

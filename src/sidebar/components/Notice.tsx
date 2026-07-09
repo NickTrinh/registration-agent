@@ -25,8 +25,8 @@ export type NoticeAction =
 // amber-500 measured 2.15:1 on white and is why `warn` uses amber-600.
 const SEVERITY = {
   info: {
-    rule: "border-gray-500 dark:border-gray-400",
-    title: "text-gray-800 dark:text-gray-100",
+    rule: "border-stone-500 dark:border-stone-400",
+    title: "text-stone-800 dark:text-stone-100",
   },
   warn: {
     rule: "border-amber-600 dark:border-amber-400",
@@ -62,7 +62,7 @@ export default function Notice({
       <div className="flex-1 min-w-0">
         <p className={`text-xs font-semibold ${s.title}`}>{title}</p>
         {body && (
-          <p className="mt-0.5 text-xs font-mono break-words text-gray-600 dark:text-gray-400">
+          <p className="mt-0.5 text-xs font-mono break-words text-stone-600 dark:text-stone-400">
             {body}
           </p>
         )}
@@ -92,7 +92,7 @@ export default function Notice({
         <button
           onClick={onDismiss}
           aria-label="Dismiss"
-          className="focus-ring shrink-0 rounded px-1 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100"
+          className="focus-ring shrink-0 rounded px-1 text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100"
         >
           ×
         </button>

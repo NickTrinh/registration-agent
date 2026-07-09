@@ -1,7 +1,28 @@
 /* Implements: ADR 0025 (dark mode is a token split, not an inversion) */
+/* Implements: ADR 0032 (the Claude-app dialect) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* One grotesque, bundled (ADR 0032). Schibsted Grotesk is the OFL stand-in
+   for Anthropic's commercial Styrene — same wide-stance grotesque warmth.
+   Bundled as woff2 rather than fetched: extension CSP forbids remote fonts
+   and the panel must render offline. Variable weight axis covers 400–900,
+   so every font-weight utility resolves to real instances, not faux-bold. */
+@font-face {
+  font-family: "Schibsted Grotesk";
+  src: url("./fonts/schibsted-grotesk-latin.woff2") format("woff2");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Schibsted Grotesk";
+  src: url("./fonts/schibsted-grotesk-italic-latin.woff2") format("woff2");
+  font-weight: 400 900;
+  font-style: italic;
+  font-display: swap;
+}
 
 /* Declared before any JS runs. main.tsx gates React's first render on the
    stored preference, but the browser paints a frame before chrome.storage
@@ -19,7 +40,7 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: "Schibsted Grotesk", system-ui, -apple-system, sans-serif;
   /* System colors, not literals — they follow `color-scheme` on the frame
      painted before the stored preference loads. */
   background: Canvas;
@@ -27,7 +48,7 @@ body {
 }
 
 @layer components {
-  /* Maroon is an 11.75:1 ink on white and a 1.51:1 ink on gray-900, so the
+  /* Maroon is an 11.75:1 ink on white and a 1.51:1 ink on stone-900, so the
      ring has to swap with the theme. (focus-ring-on-maroon and the gold it
      used left with the solid maroon header — ADR 0031.) */
   .focus-ring {
@@ -35,7 +56,47 @@ body {
            focus-visible:ring-fordham-maroon focus-visible:ring-offset-1
            focus-visible:ring-offset-white
            dark:focus-visible:ring-fordham-maroon-ink
-           dark:focus-visible:ring-offset-gray-900;
+           dark:focus-visible:ring-offset-stone-900;
+  }
+}
+
+/* The thinking phrase's shimmer (ADR 0032): a lighter band sweeping otherwise
+   ordinary ink — the only thing moving in an otherwise still pane while a
+   What-If grinds, which is exactly when the pane used to look dead. Colors
+   are stone-600 base / stone-300 band (dark: stone-400 / stone-100); both
+   ends of the gradient are legible inks, so a reduced-motion freeze at any
+   position still reads. */
+.shimmer-text {
+  background-image: linear-gradient(
+    90deg,
+    #57534e 0%,
+    #57534e 42%,
+    #d6d3d1 50%,
+    #57534e 58%,
+    #57534e 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.2s linear infinite;
+}
+.dark .shimmer-text {
+  background-image: linear-gradient(
+    90deg,
+    #a8a29e 0%,
+    #a8a29e 42%,
+    #f5f5f4 50%,
+    #a8a29e 58%,
+    #a8a29e 100%
+  );
+}
+@keyframes shimmer {
+  0% {
+    background-position: 130% 0;
+  }
+  100% {
+    background-position: -130% 0;
   }
 }
 

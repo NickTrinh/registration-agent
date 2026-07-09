@@ -8,6 +8,12 @@ export default {
   darkMode: "class",
   theme: {
     extend: {
+      // ADR 0032: one bundled grotesque (the @font-face pair in styles.css).
+      // Listed first so every `font-sans` element — which is everything —
+      // resolves to it; system-ui stays as the it-must-always-paint fallback.
+      fontFamily: {
+        sans: ['"Schibsted Grotesk"', "system-ui", "-apple-system", "sans-serif"],
+      },
       colors: {
         fordham: {
           // Maroon FILLS everywhere; maroon WRITES only on light surfaces.

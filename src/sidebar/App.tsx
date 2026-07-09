@@ -1,4 +1,5 @@
 // Implements: ADR 0031 (native-app surface grammar — chrome + navigation)
+// Implements: ADR 0032 (warm-paper chrome, bundled grotesque wordmark)
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import AuditChat from "./pages/AuditChat";
 import Settings from "./pages/Settings";
@@ -13,7 +14,14 @@ import {
 type Page = "chat" | "settings";
 
 export default function App() {
-  const [page, setPage] = useState<Page>("chat");
+  // Initial page honors ?page=settings — inert in the extension (the panel
+  // URL carries no query) but lets the dev harness screenshot Settings
+  // without scripting a click.
+  const [page, setPage] = useState<Page>(() =>
+    new URLSearchParams(window.location.search).get("page") === "settings"
+      ? "settings"
+      : "chat"
+  );
 
   // Keep a ref to the current theme preference so watchSystemTheme can
   // decide whether to re-apply on OS changes without triggering re-renders.
@@ -46,21 +54,23 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-900">
+    <div className="flex flex-col h-screen bg-stone-50 dark:bg-stone-900">
       {/* Native-app chrome (ADR 0031): a light translucent bar with a hairline,
           not a solid maroon slab — the brand lives in the maroon serif
           wordmark and every accent below, the way Messages carries blue
           without painting its navigation bar blue. backdrop-blur matters the
           moment content scrolls beneath the bar. */}
-      <header className="flex items-center justify-between pl-4 pr-2 py-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/70 dark:border-gray-800 shrink-0 z-10">
-        {/* Tailwind's stock `font-serif` — no webfont, no dependency, on every
-            machine. Maroon ink on the light bar; `maroon.ink` on dark. */}
-        <span className="font-serif text-[16px] font-semibold tracking-tight text-fordham-maroon dark:text-fordham-maroon-ink select-none">
+      <header className="flex items-center justify-between pl-4 pr-2 py-2 bg-stone-50/80 dark:bg-stone-900/80 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800 shrink-0 z-10">
+        {/* The bundled grotesque at semibold (ADR 0032) — the serif wordmark
+            left with the webfont-free constraint. Maroon ink on the light
+            bar; `maroon.ink` on dark. */}
+        <span className="text-[16px] font-semibold tracking-tight text-fordham-maroon dark:text-fordham-maroon-ink select-none">
           RamPlan
         </span>
-        {/* iOS segmented control: gray track, raised active segment. */}
+        {/* iOS segmented control: recessed track, raised active segment.
+            stone-200/70 — stone-100 vanished against the stone-50 bar. */}
         <nav
-          className="flex rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5"
+          className="flex rounded-lg bg-stone-200/70 dark:bg-stone-800 p-0.5"
           aria-label="Pages"
         >
           <NavButton active={page === "chat"} onClick={() => setPage("chat")}>
@@ -110,8 +120,8 @@ function NavButton({
       aria-current={active ? "page" : undefined}
       className={`focus-ring rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-200 ease-spring active:scale-95 ${
         active
-          ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-50 shadow-sm"
-          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+          ? "bg-white dark:bg-stone-600 text-stone-900 dark:text-stone-50 shadow-sm"
+          : "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200"
       }`}
     >
       {children}
