@@ -113,6 +113,8 @@ Every shaping decision is captured as an ADR under [`notes/decisions/`](notes/de
 | [0023](notes/decisions/0023-weekend-meeting-days.md) | Weekend meeting days (Saturday / Sunday) · Fixes the 0008 day mapping |
 | [0027](notes/decisions/0027-serialize-and-generation-guard-memory-writes.md) | Serialize memory writes and guard them with a store generation · Applies 0003 |
 | [0028](notes/decisions/0028-only-conversational-turns-enter-the-prompt-path.md) | Only conversational turns enter the prompt path (`uiOnly`) |
+| [0029](notes/decisions/0029-an-expired-banner-session-is-a-typed-error.md) | An expired Banner session is a typed error, not a SyntaxError |
+| [0030](notes/decisions/0030-exactly-one-terminal-event-from-the-turn-that-owns-the-spinner.md) | Exactly one terminal event, from the turn that owns the spinner |
 
 See [`notes/decisions/README.md`](notes/decisions/README.md) for why the project uses ADRs and how to read them.
 

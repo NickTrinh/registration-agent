@@ -56,3 +56,5 @@ For a narrative pass through the whole decision arc, read them in numerical orde
 | [0023](./0023-weekend-meeting-days.md) | Weekend meeting days (Saturday / Sunday) · Fixes the 0008 day mapping | Accepted | 2026-07-08 |
 | [0027](./0027-serialize-and-generation-guard-memory-writes.md) | Serialize memory writes and guard them with a store generation · Applies 0003 | Accepted | 2026-07-09 |
 | [0028](./0028-only-conversational-turns-enter-the-prompt-path.md) | Only conversational turns enter the prompt path (`uiOnly`) · Hardens 0010/0020 | Accepted | 2026-07-09 |
+| [0029](./0029-an-expired-banner-session-is-a-typed-error.md) | An expired Banner session is a typed error, not a SyntaxError | Accepted | 2026-07-09 |
+| [0030](./0030-exactly-one-terminal-event-from-the-turn-that-owns-the-spinner.md) | Exactly one terminal event, from the turn that owns the spinner | Accepted | 2026-07-09 |

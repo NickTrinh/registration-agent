@@ -6,6 +6,7 @@
 // The tool registry is NOT mocked: the throwing-tool test drives the real
 // `run_what_if` executor and injects the fault through ToolContext, which is
 // the only dependency that tool has on the worker.
+// Implements: ADR 0019, ADR 0030.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ConversationMessage } from "../../shared/types";
@@ -19,7 +20,7 @@ vi.mock("@anthropic-ai/sdk", () => ({
   },
 }));
 
-const { handleAIChat } = await import("./chat-loop");
+const { handleAIChat, cancelCurrentChat } = await import("./chat-loop");
 
 // ─── Fakes ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,23 @@ function fakeStream(
       if (opts.text) {
         yield { type: "content_block_delta", delta: { type: "text_delta", text: opts.text } };
       }
+    },
+    finalMessage: async () => final,
+  };
+}
+
+// A stream that hangs until its AbortSignal fires — the only way to observe
+// what a preempted/cancelled turn broadcasts.
+function abortableStream(final: AnyMessage, signal: AbortSignal) {
+  return {
+    async *[Symbol.asyncIterator]() {
+      await new Promise<void>((_resolve, reject) => {
+        signal.addEventListener("abort", () => {
+          const e = new Error("The operation was aborted.");
+          e.name = "AbortError";
+          reject(e);
+        });
+      });
     },
     finalMessage: async () => final,
   };
@@ -186,6 +204,96 @@ describe("handleAIChat tool failure", () => {
     });
     expect(broadcastsOfType("AI_TOOL_RESULT")).toHaveLength(0);
     expect(broadcastsOfType("AI_TOOL_USE")).toHaveLength(0);
+  });
+});
+
+// ─── Bug 8 — a pre-stream rejection must still terminate the turn ────────────
+
+describe("handleAIChat pre-stream failures", () => {
+  it("broadcasts AI_ERROR when the API-key read rejects", async () => {
+    // getApiKey ran BEFORE the try block: its rejection escaped handleAIChat,
+    // no AI_ERROR was broadcast, and the sidebar spinner never resolved.
+    deps.getApiKey = async () => {
+      throw new Error("storage unavailable");
+    };
+
+    await expect(handleAIChat(USER_TURN, "audit", "profile", "normal", deps)).resolves
+      .toBeUndefined();
+
+    const errors = broadcastsOfType("AI_ERROR");
+    expect(errors).toHaveLength(1);
+    expect(errors[0].error).toContain("storage unavailable");
+  });
+
+  it("broadcasts AI_ERROR when the memory load rejects", async () => {
+    // loadMemories() also ran outside the try. Same hang, different line.
+    // Fresh modules: memory-store caches the first successful read at module
+    // scope, so a warm cache would skip the storage call entirely and this test
+    // would pass on the unmocked-stream TypeError instead of the memory load.
+    vi.resetModules();
+    const { handleAIChat: freshHandleAIChat } = await import("./chat-loop");
+    (globalThis.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("quota exceeded")
+    );
+
+    await expect(freshHandleAIChat(USER_TURN, "audit", "profile", "normal", deps)).resolves
+      .toBeUndefined();
+
+    const errors = broadcastsOfType("AI_ERROR");
+    expect(errors).toHaveLength(1);
+    // Name the cause: an unmocked stream would also produce a lone AI_ERROR,
+    // so a bare count here would pass without ever exercising the memory load.
+    expect(errors[0].error).toContain("quota exceeded");
+    expect(streamMock).not.toHaveBeenCalled();
+    expect(broadcastsOfType("AI_DONE")).toHaveLength(0);
+  });
+
+  it("still broadcasts AI_ERROR (not a throw) when no API key is set", async () => {
+    deps.getApiKey = async () => null;
+
+    await handleAIChat(USER_TURN, "audit", "profile", "normal", deps);
+
+    expect(broadcastsOfType("AI_ERROR")).toHaveLength(1);
+    expect(streamMock).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Bug 9 — a preempted turn must not close the turn that replaced it ───────
+
+describe("handleAIChat preemption", () => {
+  it("does not broadcast AI_DONE for a turn aborted by the next turn", async () => {
+    streamMock
+      .mockImplementationOnce((_p: unknown, o: { signal: AbortSignal }) =>
+        abortableStream(message("end_turn"), o.signal)
+      )
+      .mockImplementationOnce(() => fakeStream(message("end_turn"), { text: "second" }));
+
+    const first = handleAIChat(USER_TURN, "audit", "profile", "normal", deps);
+    await vi.advanceTimersByTimeAsync(1); // let turn 1 reach the stream
+    const second = handleAIChat(USER_TURN, "audit", "profile", "normal", deps);
+    await vi.advanceTimersByTimeAsync(1);
+    await Promise.all([first, second]);
+
+    // Exactly one — turn 2's. The stale AI_DONE from turn 1's abort path used
+    // to land after turn 2 started and killed its loading state.
+    expect(broadcastsOfType("AI_DONE")).toHaveLength(1);
+    expect(broadcastsOfType("AI_ERROR")).toHaveLength(0);
+  });
+
+  it("still broadcasts AI_DONE when the panel cancels the only in-flight turn", async () => {
+    // The suppression above must not swallow the cancel path — CANCEL_AI_CHAT
+    // (panel close, CLEAR_MEMORIES barrier) relies on AI_DONE as its terminal
+    // event to resolve the sidebar spinner.
+    streamMock.mockImplementationOnce((_p: unknown, o: { signal: AbortSignal }) =>
+      abortableStream(message("end_turn"), o.signal)
+    );
+
+    const inflight = handleAIChat(USER_TURN, "audit", "profile", "normal", deps);
+    await vi.advanceTimersByTimeAsync(1);
+    cancelCurrentChat();
+    await inflight;
+
+    expect(broadcastsOfType("AI_DONE")).toHaveLength(1);
   });
 });
 
