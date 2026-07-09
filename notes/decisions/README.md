@@ -54,3 +54,5 @@ For a narrative pass through the whole decision arc, read them in numerical orde
 | [0021](./0021-mv3-keepalive-and-failure-surfacing.md) | MV3 keepalive for post-stream work + tool-cap/truncation surfacing | Accepted | 2026-07-08 |
 | [0022](./0022-catalog-full-replace-single-term.md) | Course catalog is a full-replace, single-term store · Constrains multi-term | Accepted | 2026-07-08 |
 | [0023](./0023-weekend-meeting-days.md) | Weekend meeting days (Saturday / Sunday) · Fixes the 0008 day mapping | Accepted | 2026-07-08 |
+| [0027](./0027-serialize-and-generation-guard-memory-writes.md) | Serialize memory writes and guard them with a store generation · Applies 0003 | Accepted | 2026-07-09 |
+| [0028](./0028-only-conversational-turns-enter-the-prompt-path.md) | Only conversational turns enter the prompt path (`uiOnly`) · Hardens 0010/0020 | Accepted | 2026-07-09 |
