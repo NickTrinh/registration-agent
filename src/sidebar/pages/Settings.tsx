@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { MemoryEntry } from "../../shared/types";
+import Notice from "../components/Notice";
 import {
   applyTheme,
   loadThemePreference,
@@ -10,6 +11,18 @@ import {
 interface BannerTerm {
   code: string;
   description: string;
+}
+
+// A catalog refresh fails in two ways that want different recoveries, so the
+// UI keeps them apart rather than flattening both to a string (ADR 0029).
+// `expired` ⇒ `message` is the worker's one fixed sentence and `recoveryUrl`
+// is present; otherwise `message` is raw provider text and there is no action
+// worth offering. Re-running the fetch against a dead Banner session just
+// reproduces the failure — the only real recovery is a Banner tab.
+interface CatalogFailure {
+  message: string;
+  expired: boolean;
+  recoveryUrl?: string;
 }
 
 export default function Settings() {
@@ -33,7 +46,7 @@ export default function Settings() {
   const [catalogUpdatedAt, setCatalogUpdatedAt] = useState<number | null>(null);
   const [catalogRefreshing, setCatalogRefreshing] = useState(false);
   const [catalogProgress, setCatalogProgress] = useState<{ done: number; total: number; label: string } | null>(null);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState<CatalogFailure | null>(null);
 
   // Long-term memory state. Provisional entries still accumulate internally
   // (the curator uses them for promotion tracking) but are deliberately not
@@ -52,6 +65,13 @@ export default function Settings() {
 
   // Theme preference: light / dark / system (default).
   const [theme, setTheme] = useState<ThemePreference>("system");
+
+  // Two-step confirms for the destructive actions. `confirm()` and `alert()`
+  // are blocking OS chrome: unthemeable, out of place in a side panel, and
+  // they render light in dark mode no matter what `color-scheme` says.
+  const [pendingClearAll, setPendingClearAll] = useState(false);
+  const [pendingRerun, setPendingRerun] = useState(false);
+  const [rerunDone, setRerunDone] = useState(false);
 
   useEffect(() => {
     loadThemePreference().then(setTheme);
@@ -121,7 +141,11 @@ export default function Settings() {
       } else if (msg.type === "CATALOG_ERROR") {
         setCatalogRefreshing(false);
         setCatalogProgress(null);
-        setCatalogError(msg.error ?? "Unknown error");
+        setCatalogError({
+          message: msg.error ?? "Unknown error",
+          expired: msg.expired === true,
+          recoveryUrl: typeof msg.recoveryUrl === "string" ? msg.recoveryUrl : undefined,
+        });
       } else if (msg.type === "MEMORY_UPDATED") {
         if (Array.isArray(msg.memories)) setMemories(msg.memories);
       } else if (msg.type === "AUTO_SAVE_UPDATED") {
@@ -179,7 +203,7 @@ export default function Settings() {
   }
 
   function clearAllMemories() {
-    if (!confirm("Delete ALL long-term memories? This cannot be undone.")) return;
+    setPendingClearAll(false);
     setMemories([]);
     chrome.runtime.sendMessage({ type: "CLEAR_MEMORIES" });
   }
@@ -225,13 +249,7 @@ export default function Settings() {
   }
 
   function rerunOnboarding() {
-    if (
-      !confirm(
-        "Re-run onboarding? This will DELETE all your current memories and restart the intake conversation. Your audit, API key, and catalog stay intact."
-      )
-    ) {
-      return;
-    }
+    setPendingRerun(false);
     // Wipe memories + provisional + session chat, then clear the completion
     // flag so the welcome card shows on the Advisor tab. The service worker
     // rebroadcasts MEMORY_UPDATED + ONBOARDING_RESET; AuditChat listens for
@@ -242,7 +260,7 @@ export default function Settings() {
     chrome.runtime.sendMessage({ type: "CLEAR_PROVISIONAL" });
     chrome.runtime.sendMessage({ type: "RESET_ONBOARDING" });
     chrome.storage.session.clear();
-    alert("Onboarding reset. Head to the Advisor tab — the welcome card is back.");
+    setRerunDone(true);
   }
 
   function refreshCatalog() {
@@ -271,15 +289,25 @@ export default function Settings() {
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
           Stored locally in your browser, never sent anywhere except Anthropic.
           Get one at{" "}
-          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" className="underline text-fordham-maroon">
+          <a
+            href="https://console.anthropic.com"
+            target="_blank"
+            rel="noreferrer"
+            className="focus-ring rounded underline text-fordham-maroon dark:text-fordham-maroon-ink"
+          >
             console.anthropic.com
           </a>.
         </p>
 
         {maskedKey && (
-          <div className="flex items-center justify-between mb-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-            <span className="text-xs text-green-800 font-mono">{maskedKey}</span>
-            <button onClick={clearKey} className="text-xs text-red-600 hover:text-red-800 font-medium">Remove</button>
+          <div className="flex items-center justify-between mb-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <span className="text-xs text-gray-800 dark:text-gray-100 font-mono">{maskedKey}</span>
+            <button
+              onClick={clearKey}
+              className="focus-ring rounded px-1 text-xs text-red-700 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
+            >
+              Remove
+            </button>
           </div>
         )}
 
@@ -290,12 +318,13 @@ export default function Settings() {
             onChange={(e) => setApiKey(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && saveKey()}
             placeholder={maskedKey ? "Enter new key to replace..." : "sk-ant-..."}
-            className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-mono focus:outline-none focus:border-fordham-maroon"
+            aria-label="Anthropic API key"
+            className="focus-ring flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-mono"
           />
           <button
             onClick={saveKey}
             disabled={!apiKey.trim()}
-            className="px-4 py-2 bg-fordham-maroon text-white rounded-xl text-sm font-medium disabled:opacity-40 hover:bg-opacity-90"
+            className="focus-ring px-4 py-2 bg-fordham-maroon text-white rounded-xl text-sm font-medium disabled:opacity-40 hover:bg-opacity-90"
           >
             {saved ? "Saved!" : "Save"}
           </button>
@@ -310,14 +339,14 @@ export default function Settings() {
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Student Profile</h2>
           <div className="flex items-center gap-3">
             {!editing && profile && (
-              <button onClick={startEdit} className="text-xs text-fordham-maroon hover:underline">
+              <button onClick={startEdit} className="focus-ring rounded px-1 text-xs text-fordham-maroon dark:text-fordham-maroon-ink hover:underline">
                 Edit
               </button>
             )}
             <button
               onClick={refreshProfile}
               disabled={refreshing || editing}
-              className="text-xs text-gray-500 dark:text-gray-400 hover:underline disabled:opacity-40"
+              className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400 hover:underline disabled:opacity-40"
             >
               {refreshing ? "Refreshing…" : "Refresh"}
             </button>
@@ -325,7 +354,7 @@ export default function Settings() {
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
           Auto-extracted from your DegreeWorks audit. Injected into every chat session as memory.
-          {profileDate && <span className="ml-1 text-gray-400 dark:text-gray-500">Last updated {profileDate}.</span>}
+          {profileDate && <span className="ml-1 text-gray-600 dark:text-gray-400">Last updated {profileDate}.</span>}
         </p>
 
         {editing ? (
@@ -334,19 +363,20 @@ export default function Settings() {
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               rows={10}
-              className="w-full text-xs text-gray-700 dark:text-gray-300 bg-white border border-fordham-maroon rounded-lg p-3 font-mono leading-relaxed focus:outline-none resize-none"
+              aria-label="Student profile"
+              className="focus-ring w-full text-xs text-gray-800 dark:text-gray-100 bg-transparent border border-fordham-maroon dark:border-fordham-maroon-ink rounded-lg p-3 font-mono leading-relaxed resize-none"
             />
             <div className="flex gap-2 justify-end">
               <button
                 onClick={cancelEdit}
-                className="px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:bg-gray-800"
+                className="focus-ring px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 Cancel
               </button>
               <button
                 onClick={saveEdit}
                 disabled={!editValue.trim()}
-                className="px-3 py-1.5 text-xs bg-fordham-maroon text-white rounded-lg disabled:opacity-40 hover:bg-opacity-90"
+                className="focus-ring px-3 py-1.5 text-xs bg-fordham-maroon text-white rounded-lg disabled:opacity-40 hover:bg-opacity-90"
               >
                 Save
               </button>
@@ -357,7 +387,7 @@ export default function Settings() {
             {profile}
           </pre>
         ) : (
-          <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
             No profile yet. Visit your DegreeWorks page to generate one automatically.
           </div>
         )}
@@ -369,14 +399,31 @@ export default function Settings() {
       <div>
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Long-Term Memory</h2>
-          {memories.length > 0 && (
-            <button
-              onClick={clearAllMemories}
-              className="text-xs text-red-600 hover:text-red-800 font-medium"
-            >
-              Clear all
-            </button>
-          )}
+          {memories.length > 0 &&
+            (pendingClearAll ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600 dark:text-gray-400">Delete all?</span>
+                <button
+                  onClick={clearAllMemories}
+                  className="focus-ring rounded px-2 py-0.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => setPendingClearAll(false)}
+                  className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400 hover:underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setPendingClearAll(true)}
+                className="focus-ring rounded px-1 text-xs text-red-700 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
+              >
+                Clear all
+              </button>
+            ))}
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
           Durable facts the advisor has learned about you. Injected as a routing
@@ -384,12 +431,12 @@ export default function Settings() {
         </p>
 
         {/* Auto-save toggle */}
-        <label className="flex items-center justify-between gap-3 px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:bg-gray-800">
+        <label className="flex items-center justify-between gap-3 px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
           <div className="flex-1 min-w-0">
             <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
               Auto-save memories from chat
             </div>
-            <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+            <div className="text-xs text-gray-600 dark:text-gray-400 leading-snug">
               When ON, the advisor learns durable facts from normal conversation.
               When OFF, memories only save via onboarding or explicit "remember" requests.
             </div>
@@ -398,7 +445,8 @@ export default function Settings() {
             onClick={toggleAutoSave}
             role="switch"
             aria-checked={autoSaveEnabled}
-            className={`shrink-0 relative inline-flex h-5 w-9 rounded-full transition-colors ${
+            aria-label="Auto-save memories from chat"
+            className={`focus-ring shrink-0 relative inline-flex h-5 w-9 rounded-full transition-colors ${
               autoSaveEnabled ? "bg-fordham-maroon" : "bg-gray-300 dark:bg-gray-600"
             }`}
           >
@@ -411,7 +459,7 @@ export default function Settings() {
         </label>
 
         {memories.length === 0 ? (
-          <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
             No memories yet. They'll appear here as you chat — or start by
             completing onboarding in the Advisor tab.
           </div>
@@ -424,7 +472,7 @@ export default function Settings() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[10px] uppercase tracking-wide font-semibold text-fordham-maroon bg-fordham-maroon/10 px-1.5 py-0.5 rounded">
+                    <span className="text-[11px] uppercase tracking-wide font-semibold text-fordham-maroon dark:text-fordham-maroon-ink bg-fordham-maroon/10 dark:bg-fordham-maroon-ink/10 px-1.5 py-0.5 rounded">
                       {m.type}
                     </span>
                     {editingId === m.id ? null : (
@@ -440,26 +488,28 @@ export default function Settings() {
                         value={editDraftDescription}
                         onChange={(e) => setEditDraftDescription(e.target.value)}
                         placeholder="Description (≤10 words)"
-                        className="w-full text-xs px-2 py-1 border border-fordham-maroon rounded focus:outline-none"
+                        aria-label="Memory description"
+                        className="focus-ring w-full text-xs px-2 py-1 bg-transparent border border-fordham-maroon dark:border-fordham-maroon-ink rounded"
                       />
                       <textarea
                         value={editDraftContent}
                         onChange={(e) => setEditDraftContent(e.target.value)}
                         placeholder="Content (1–3 sentences)"
                         rows={3}
-                        className="w-full text-[11px] px-2 py-1 border border-fordham-maroon rounded resize-none focus:outline-none leading-snug"
+                        aria-label="Memory content"
+                        className="focus-ring w-full text-xs px-2 py-1 bg-transparent border border-fordham-maroon dark:border-fordham-maroon-ink rounded resize-none leading-snug"
                       />
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={cancelMemoryEdit}
-                          className="text-[10px] text-gray-500 dark:text-gray-400 hover:underline"
+                          className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400 hover:underline"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={saveMemoryEdit}
                           disabled={!editDraftDescription.trim() || !editDraftContent.trim()}
-                          className="text-[10px] px-2 py-0.5 bg-fordham-maroon text-white rounded disabled:opacity-40"
+                          className="focus-ring text-xs px-2 py-0.5 bg-fordham-maroon text-white rounded disabled:opacity-40"
                         >
                           Save
                         </button>
@@ -467,10 +517,14 @@ export default function Settings() {
                     </div>
                   ) : (
                     <>
-                      <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-snug">{m.content}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 leading-snug">{m.content}</p>
+                      {/* ADR 0015: this quote exists so the student can VERIFY
+                          the memory against what they remember saying. It is
+                          evidence, so it is set like evidence — not shrunk to
+                          10px grey italic like a disclaimer nobody reads. */}
                       {m.sourceQuote && (
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 italic leading-snug mt-1">
-                          you said: "{m.sourceQuote}"
+                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-snug mt-1.5 pl-2 border-l-2 border-gray-300 dark:border-gray-600">
+                          you said: “{m.sourceQuote}”
                         </p>
                       )}
                     </>
@@ -480,17 +534,19 @@ export default function Settings() {
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => startMemoryEdit(m)}
-                      className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-fordham-maroon"
+                      className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400 hover:text-fordham-maroon dark:hover:text-fordham-maroon-ink"
+                      aria-label={`Edit memory: ${m.description}`}
                       title="Edit"
                     >
-                      ✎
+                      <span aria-hidden>✎</span>
                     </button>
                     <button
                       onClick={() => deleteMemoryEntry(m.id)}
-                      className="text-xs text-gray-400 dark:text-gray-500 hover:text-red-600"
+                      className="focus-ring rounded px-1 text-xs text-gray-600 dark:text-gray-400 hover:text-red-700 dark:hover:text-red-400"
+                      aria-label={`Delete memory: ${m.description}`}
                       title="Delete"
                     >
-                      ×
+                      <span aria-hidden>×</span>
                     </button>
                   </div>
                 )}
@@ -500,17 +556,49 @@ export default function Settings() {
         )}
 
         <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
-          <button
-            onClick={rerunOnboarding}
-            className="text-xs text-fordham-maroon hover:underline font-medium"
-          >
-            ↻ Re-run onboarding (wipes memories)
-          </button>
-          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 leading-snug">
-            Clears everything the advisor has learned about you and restarts the
-            intake conversation on the Advisor tab. Your audit, API key, and
-            catalog stay intact.
-          </p>
+          {rerunDone ? (
+            <Notice
+              severity="info"
+              title="Onboarding reset"
+              body="Head to the Advisor tab — the welcome card is back."
+              onDismiss={() => setRerunDone(false)}
+            />
+          ) : pendingRerun ? (
+            <div className="space-y-2">
+              <p className="text-xs text-gray-800 dark:text-gray-100 leading-snug">
+                This deletes everything the advisor has learned about you and
+                restarts the intake. Your audit, API key, and catalog stay intact.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={rerunOnboarding}
+                  className="focus-ring rounded px-2 py-1 text-xs font-medium bg-red-600 text-white hover:bg-red-700"
+                >
+                  Delete memories and re-run
+                </button>
+                <button
+                  onClick={() => setPendingRerun(false)}
+                  className="focus-ring rounded px-2 py-1 text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => setPendingRerun(true)}
+                className="focus-ring rounded px-1 text-xs text-fordham-maroon dark:text-fordham-maroon-ink hover:underline font-medium"
+              >
+                ↻ Re-run onboarding (wipes memories)
+              </button>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-snug">
+                Clears everything the advisor has learned about you and restarts the
+                intake conversation on the Advisor tab. Your audit, API key, and
+                catalog stay intact.
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -522,7 +610,7 @@ export default function Settings() {
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
           Pulls real Fordham sections from Banner — CRNs, meeting times, seats. Claude searches this when recommending courses.
           {catalogTerm && catalogCourseCount > 0 && (
-            <span className="ml-1 text-gray-400 dark:text-gray-500">
+            <span className="ml-1 text-gray-600 dark:text-gray-400">
               {catalogCourseCount} courses loaded for {
                 terms.find((t) => t.code === catalogTerm)?.description ?? catalogTerm
               }
@@ -532,11 +620,14 @@ export default function Settings() {
         </p>
 
         <div className="flex gap-2 mb-3">
+          {/* No custom dropdown. `color-scheme` (styles.css + applyTheme) is
+              what makes the native <select> AND its popup follow the theme. */}
           <select
             value={selectedTerm}
             onChange={(e) => setSelectedTerm(e.target.value)}
             disabled={catalogRefreshing || terms.length === 0}
-            className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm bg-white focus:outline-none focus:border-fordham-maroon disabled:opacity-40"
+            aria-label="Catalog term"
+            className="focus-ring flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm bg-transparent disabled:opacity-40"
           >
             {terms.length === 0 && <option value="">Loading terms…</option>}
             {terms.map((t) => (
@@ -548,7 +639,7 @@ export default function Settings() {
           <button
             onClick={refreshCatalog}
             disabled={catalogRefreshing || !selectedTerm}
-            className="px-4 py-2 bg-fordham-maroon text-white rounded-xl text-sm font-medium disabled:opacity-40 hover:bg-opacity-90"
+            className="focus-ring px-4 py-2 bg-fordham-maroon text-white rounded-xl text-sm font-medium disabled:opacity-40 hover:bg-opacity-90"
           >
             {catalogRefreshing ? "Loading…" : "Refresh"}
           </button>
@@ -577,14 +668,29 @@ export default function Settings() {
           </div>
         )}
 
-        {catalogError && (
-          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
-            {catalogError}
-          </div>
-        )}
+        {/* An expired session is recoverable and says where; an opaque failure
+            is not, and says that instead of offering a button that re-fails.
+            The second step ("now hit Refresh") needs no slot — that control is
+            three inches up this same screen. */}
+        {catalogError?.expired && catalogError.recoveryUrl ? (
+          <Notice
+            severity="warn"
+            title="Fordham registration session expired"
+            body={catalogError.message}
+            action={{ label: "Open Browse Classes", href: catalogError.recoveryUrl }}
+            onDismiss={() => setCatalogError(null)}
+          />
+        ) : catalogError ? (
+          <Notice
+            severity="error"
+            title="Catalog refresh failed"
+            body={catalogError.message}
+            onDismiss={() => setCatalogError(null)}
+          />
+        ) : null}
 
         {!catalogRefreshing && !catalogError && catalogCourseCount === 0 && (
-          <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
             No catalog loaded yet. Pick a term and hit Refresh — takes ~30–60 seconds.
           </div>
         )}
@@ -599,7 +705,7 @@ export default function Settings() {
           {auditText && (
             <button
               onClick={() => setShowAudit((v) => !v)}
-              className="text-xs text-fordham-maroon hover:underline"
+              className="focus-ring rounded px-1 text-xs text-fordham-maroon dark:text-fordham-maroon-ink hover:underline"
             >
               {showAudit ? "Hide" : "Show"}
             </button>
@@ -608,14 +714,14 @@ export default function Settings() {
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
           The exact text Claude reads from your DegreeWorks page each session.
           {auditText && (
-            <span className="ml-1 text-gray-400 dark:text-gray-500">
+            <span className="ml-1 text-gray-600 dark:text-gray-400">
               {Math.round(auditText.length / 1000)}k chars · ~{Math.round(auditText.length / 4)} tokens
             </span>
           )}
         </p>
 
         {!auditText ? (
-          <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
             No audit captured yet. Visit your DegreeWorks page.
           </div>
         ) : showAudit ? (
@@ -623,7 +729,7 @@ export default function Settings() {
             {auditText}
           </pre>
         ) : (
-          <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
             {auditText.substring(0, 120).trim()}…
           </div>
         )}
@@ -648,10 +754,10 @@ export default function Settings() {
               role="radio"
               aria-checked={theme === option}
               onClick={() => selectTheme(option)}
-              className={`flex-1 text-xs font-medium py-2 transition-colors capitalize ${
+              className={`focus-ring flex-1 text-xs font-medium py-2 transition-colors capitalize ${
                 theme === option
                   ? "bg-fordham-maroon text-white"
-                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  : "bg-transparent text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}
             >
               {option}
@@ -666,7 +772,7 @@ export default function Settings() {
       <div>
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">About</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-          Fordham Registration Agent reads your DegreeWorks audit and uses Claude AI (Sonnet for chat, Haiku for profile extraction) to help you plan your courses. All data is stored locally in your browser.
+          RamPlan reads your DegreeWorks audit and uses Claude AI (Sonnet for chat, Haiku for profile extraction) to help you plan your courses. All data is stored locally in your browser.
         </p>
       </div>
 

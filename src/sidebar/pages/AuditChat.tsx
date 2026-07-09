@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { prefersReducedMotion } from "../theme";
 import { conversationalOnly } from "../../shared/types";
 import type {
   ConversationMessage,
@@ -549,7 +550,11 @@ export default function AuditChat() {
   // them catch up on demand.
   useEffect(() => {
     if (isAtBottomRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      // `behavior` is a JS argument, so the reduced-motion block in styles.css
+      // cannot reach it. Read the query here instead.
+      bottomRef.current?.scrollIntoView({
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
     }
   }, [messages, showContinueButton]);
 
@@ -709,7 +714,7 @@ export default function AuditChat() {
                 </button>
                 <button
                   onClick={skipOnboarding}
-                  className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-800"
+                  className="focus-ring px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Skip for now
                 </button>
@@ -728,7 +733,7 @@ export default function AuditChat() {
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
-                  className="text-left px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-800 hover:border-fordham-maroon transition-colors"
+                  className="focus-ring text-left px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-fordham-maroon dark:hover:border-fordham-maroon-ink transition-colors"
                 >
                   {s}
                 </button>
