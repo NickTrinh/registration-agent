@@ -236,20 +236,18 @@ export async function handleAIChat(
     finalMessage = await withKeepalive(runToolRounds());
 
     // Surface loop-exit conditions the student would otherwise not see. These
-    // deltas append to the streamed text before AI_DONE closes the turn.
+    // are OUR observations about the loop, not the advisor's words — so they
+    // broadcast as AI_NOTICE (the sidebar renders a <Notice> with a Continue
+    // action) instead of appending fake prose to the streamed text. That kept
+    // the italic aside inside the transcript sent back to the model on the
+    // next turn, where it read as something the advisor once said.
+    // Implements: ADR 0026.
     if (finalMessage?.stop_reason === "tool_use") {
       // The loop exited while Claude was STILL asking for tools — it ran out of
       // the 5 rounds above (the per-turn cap), not because it was done.
-      deps.broadcast({
-        type: "AI_CHUNK",
-        delta:
-          "\n\n*(I hit my per-turn tool limit — ask me to continue and I'll pick up where I left off.)*",
-      });
+      deps.broadcast({ type: "AI_NOTICE", kind: "tool-cap" });
     } else if (finalMessage?.stop_reason === "max_tokens") {
-      deps.broadcast({
-        type: "AI_CHUNK",
-        delta: '\n\n*(Response was cut short — say "continue" for the rest.)*',
-      });
+      deps.broadcast({ type: "AI_NOTICE", kind: "truncated" });
     }
 
     deps.broadcast({ type: "AI_DONE" });

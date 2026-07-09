@@ -1,5 +1,6 @@
 // Guards the see/tell boundary: what the student sees is a superset of what the
-// model is told. Implements: ADR 0028.
+// model is told. Implements: ADR 0028 (as amended by its revisit clause — the
+// uiOnly flag is gone; errors never enter `messages` at all, see ADR 0026).
 
 import { describe, it, expect } from "vitest";
 import { conversationalOnly, type ConversationMessage } from "./types";
@@ -18,17 +19,6 @@ describe("conversationalOnly (ADR 0028)", () => {
     expect(conversationalOnly(msgs)).toEqual(msgs);
   });
 
-  it("drops the AI_ERROR bubble so raw API error text never reaches the model", () => {
-    const msgs = [
-      turn("user", "search for PHIL courses"),
-      turn("assistant", "Error: 529 overloaded_error {\"type\":\"error\"}", { uiOnly: true }),
-      turn("user", "try again"),
-    ];
-    const sent = conversationalOnly(msgs);
-    expect(sent).toHaveLength(2);
-    expect(sent.some((m) => m.content.includes("overloaded_error"))).toBe(false);
-  });
-
   it("drops systemAction bubbles (they are UI events, not turns)", () => {
     const msgs = [
       turn("user", "I'm a neuroscience major"),
@@ -39,22 +29,28 @@ describe("conversationalOnly (ADR 0028)", () => {
     expect(conversationalOnly(msgs)).toHaveLength(1);
   });
 
-  it("an error bubble stays dropped across many later turns", () => {
-    // The original bug wasn't that the error appeared once — it's that it rode
-    // along in EVERY subsequent request for the rest of the session.
+  it("systemAction bubbles stay dropped across many later turns", () => {
+    // The original bug class: a UI artifact riding along in EVERY subsequent
+    // request for the rest of the session.
     const msgs: ConversationMessage[] = [
-      turn("assistant", "Error: boom", { uiOnly: true }),
+      turn("assistant", "", {
+        systemAction: { kind: "onboarding-saves", items: [], done: true },
+      }),
     ];
     for (let i = 0; i < 10; i++) {
       msgs.push(turn("user", `q${i}`), turn("assistant", `a${i}`));
     }
     const sent = conversationalOnly(msgs);
     expect(sent).toHaveLength(20);
-    expect(sent.some((m) => m.uiOnly)).toBe(false);
+    expect(sent.some((m) => m.systemAction)).toBe(false);
   });
 
   it("does not mutate the input array", () => {
-    const msgs = [turn("assistant", "Error: boom", { uiOnly: true })];
+    const msgs = [
+      turn("assistant", "", {
+        systemAction: { kind: "onboarding-saves", items: [], done: true },
+      }),
+    ];
     conversationalOnly(msgs);
     expect(msgs).toHaveLength(1);
   });

@@ -77,22 +77,20 @@ export interface ConversationMessage {
   // creates a fresh bubble. Filtered out before the history is sent to
   // Anthropic — it represents a UI event, not a turn in the conversation.
   systemAction?: SystemAction;
-  // This message is a UI artifact, not a turn the model said or heard — e.g.
-  // the "Error: ..." bubble rendered when AI_ERROR arrives. It MUST NOT be
-  // replayed into the prompt: doing so feeds raw API error text back to the
-  // model as if the advisor had spoken it, on every subsequent turn, forever.
-  // Anything uiOnly is filtered by `conversationalOnly()` before send.
-  // See ADR 0028.
-  uiOnly?: boolean;
 }
 
 // The single gate between what the student SEES and what the model is TOLD.
 // Every path that ships history to the worker goes through this — do not
 // hand-roll the filter at a call site. Implements: ADR 0028.
+//
+// The `uiOnly` flag this once also filtered is gone — ADR 0028's revisit
+// clause (Alternative B) landed: errors and loop-exit notices render as
+// turn-scoped <Notice>s and never enter `messages` at all, so there is
+// nothing to strip. See ADR 0026.
 export function conversationalOnly(
   messages: ConversationMessage[]
 ): ConversationMessage[] {
-  return messages.filter((m) => !m.systemAction && !m.uiOnly);
+  return messages.filter((m) => !m.systemAction);
 }
 
 export interface SystemActionItem {

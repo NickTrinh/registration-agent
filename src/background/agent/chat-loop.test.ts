@@ -297,12 +297,15 @@ describe("handleAIChat preemption", () => {
   });
 });
 
-// ─── Bug 3 — loop-exit notices are valid markdown ────────────────────────────
+// ─── Loop-exit notices are broadcasts, not prose (ADR 0026) ──────────────────
+//
+// The tool-cap and truncation conditions used to append italic asides to the
+// streamed text via AI_CHUNK — which put OUR words into the transcript sent
+// back to the model on later turns. They are AI_NOTICE broadcasts now; the
+// sidebar renders them as <Notice>s that never enter `messages`.
 
 describe("handleAIChat loop-exit notices", () => {
-  const BALANCED = /^\n\n\*\(.+\)\*$/s;
-
-  it("closes the emphasis on the per-turn tool-cap notice", async () => {
+  it("broadcasts AI_NOTICE tool-cap when the 5-round cap is exhausted", async () => {
     // Never stops asking for tools: exhausts the 5-round cap.
     streamMock.mockReturnValue(
       fakeStream(
@@ -312,19 +315,26 @@ describe("handleAIChat loop-exit notices", () => {
 
     await handleAIChat(USER_TURN, "audit", "profile", "normal", deps);
 
-    const notice = broadcastsOfType("AI_CHUNK").pop();
-    expect(notice?.delta as string).toMatch(BALANCED);
-    expect(notice?.delta as string).toContain("per-turn tool limit");
+    const notices = broadcastsOfType("AI_NOTICE");
+    expect(notices).toHaveLength(1);
+    expect(notices[0]?.kind).toBe("tool-cap");
+    // And the transcript stays clean — no aside smuggled into the stream.
+    for (const c of broadcastsOfType("AI_CHUNK")) {
+      expect(c.delta as string).not.toContain("per-turn tool limit");
+    }
     expect(streamMock).toHaveBeenCalledTimes(5);
   });
 
-  it("closes the emphasis on the max_tokens truncation notice", async () => {
+  it("broadcasts AI_NOTICE truncated on max_tokens", async () => {
     streamMock.mockReturnValue(fakeStream(message("max_tokens"), { text: "half a sent" }));
 
     await handleAIChat(USER_TURN, "audit", "profile", "normal", deps);
 
-    const notice = broadcastsOfType("AI_CHUNK").pop();
-    expect(notice?.delta as string).toMatch(BALANCED);
-    expect(notice?.delta as string).toContain("cut short");
+    const notices = broadcastsOfType("AI_NOTICE");
+    expect(notices).toHaveLength(1);
+    expect(notices[0]?.kind).toBe("truncated");
+    for (const c of broadcastsOfType("AI_CHUNK")) {
+      expect(c.delta as string).not.toContain("cut short");
+    }
   });
 });
