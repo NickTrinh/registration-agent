@@ -804,8 +804,10 @@ export default function AuditChat({
           <Notice
             severity="info"
             title={
+              // System chrome, so no first person — "I" here would be the
+              // advisor's voice leaking into our Notice. Implements: ADR 0026.
               turnNotice === "tool-cap"
-                ? "I hit my per-turn tool limit."
+                ? "The advisor hit its per-turn tool limit."
                 : "The response was cut short."
             }
             action={{
@@ -873,22 +875,29 @@ export default function AuditChat({
       {/* Single-slot memory-save toast — floats just above the input bar
           so it doesn't clutter the message stream. Auto-dismisses after 3s
           or when the next save replaces it. */}
+      {/* Speaks the citation grammar (ADR 0024): tracked-caps verb, mono-ish
+          quiet ink, maroon accent — not a green success pill from another
+          design system. The saved text is the payload; give it the full
+          width instead of truncating at 220px. */}
       {toast && (
         <div className="px-3 pb-1 shrink-0">
-          <div
+          <p
             key={toast.id}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/50 border border-green-300 dark:border-green-700 text-xs text-green-900 dark:text-green-100 shadow-sm animate-toast-pop"
+            className="border-l-2 border-fordham-maroon dark:border-fordham-maroon-ink pl-2 py-0.5 text-[11px] leading-relaxed text-gray-600 dark:text-gray-400 truncate animate-toast-pop"
           >
-            <span className="font-medium">Memory saved:</span>
-            <span className="truncate max-w-[220px]">{toast.text}</span>
-          </div>
+            <span className="uppercase tracking-wider font-semibold">Saved</span>
+            {" · "}
+            {toast.text}
+          </p>
         </div>
       )}
 
       {/* Input — disabled while the Continue-to-chat gate is showing so the
           student reads the wrap-up + saved memories before the next turn. */}
       <div className="p-3 border-t border-gray-100 dark:border-gray-800 shrink-0">
-        <div className="flex gap-2">
+        {/* items-end: when the textarea grows, Send/Stop stay their natural
+            height anchored at the baseline — not a full-height slab. */}
+        <div className="flex items-end gap-2">
           {/* field-sizing:content grows the box with the message up to ~5
               lines; Enter sends, Shift+Enter breaks the line — the messenger
               contract. Implements: ADR 0024. */}

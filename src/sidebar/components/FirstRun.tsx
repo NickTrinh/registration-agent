@@ -77,10 +77,10 @@ export default function FirstRun({
 
   return (
     <div className="pt-6 px-1 animate-msg-in">
-      <p className="font-serif text-[15px] font-semibold text-fordham-maroon dark:text-fordham-maroon-ink">
-        RamPlan
-      </p>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5 mb-2">
+      {/* No wordmark here — the header bar 60px above already says RamPlan.
+          Repeating the brand inside the card was a stutter; the heading's
+          job is the task, not the name. */}
+      <p className="font-serif text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-2">
         Set up in three steps.
       </p>
 
