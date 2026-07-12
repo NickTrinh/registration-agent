@@ -874,7 +874,12 @@ function Section({
         </h2>
         {labelAction}
       </div>
-      <div className="rounded-2xl bg-white dark:bg-stone-900 divide-y divide-stone-100 dark:divide-stone-800 overflow-hidden">
+      {/* Light mode: white cards sat on stone-100 at ~3% luminance apart and
+          dissolved into the warm paper (round-2 verdict). A hairline border +
+          soft shadow restores the "raised card" read ADR 0031 called for.
+          Dark works by lightness alone (stone-900 card > stone-950 page), so
+          it keeps just the hairline and drops the shadow (invisible on dark). */}
+      <div className="rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-sm dark:shadow-none divide-y divide-stone-100 dark:divide-stone-800 overflow-hidden">
         {children}
       </div>
       {footer && (

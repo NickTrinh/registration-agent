@@ -4,22 +4,47 @@
 @tailwind components;
 @tailwind utilities;
 
-/* One grotesque, bundled (ADR 0032). Schibsted Grotesk is the OFL stand-in
-   for Anthropic's commercial Styrene — same wide-stance grotesque warmth.
-   Bundled as woff2 rather than fetched: extension CSP forbids remote fonts
-   and the panel must render offline. Variable weight axis covers 400–900,
-   so every font-weight utility resolves to real instances, not faux-bold. */
+/* One grotesque, bundled (ADR 0034). Hanken Grotesk is the OFL stand-in for
+   Anthropic's commercial Styrene — geometric-humanist with rounded terminals,
+   the softer/friendlier UI workhorse Patch asked for over Schibsted's crisp
+   Nordic neutrality. Bundled as woff2 rather than fetched: extension CSP
+   forbids remote fonts and the panel must render offline. Variable weight axis
+   covers 100–900, so every font-weight utility resolves to a real instance,
+   not faux-bold. */
 @font-face {
-  font-family: "Schibsted Grotesk";
-  src: url("./fonts/schibsted-grotesk-latin.woff2") format("woff2");
-  font-weight: 400 900;
+  font-family: "Hanken Grotesk";
+  src: url("./fonts/hanken-grotesk-latin.woff2") format("woff2");
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "Schibsted Grotesk";
-  src: url("./fonts/schibsted-grotesk-italic-latin.woff2") format("woff2");
-  font-weight: 400 900;
+  font-family: "Hanken Grotesk";
+  src: url("./fonts/hanken-grotesk-italic-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Two-tier type (ADR 0033): Newsreader carries the DISPLAY/personality layer —
+   the greeting, the wordmark — while Hanken stays the UI/body grotesque.
+   Newsreader is Production Type's screen-first humanist serif (OFL): the warm,
+   moderate-high-contrast Tiempos/Lyon register Patch pointed to, and the
+   closest free stand-in for Anthropic's Copernicus. Bundled woff2, not fetched
+   — same CSP/offline constraint as the grotesque. Variable weight 200–800, so
+   one file covers every display weight. Fallback stack is a real system serif
+   (Georgia) so the layer still reads if the face ever fails to load. */
+@font-face {
+  font-family: "Newsreader";
+  src: url("./fonts/newsreader-latin.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Newsreader";
+  src: url("./fonts/newsreader-italic-latin.woff2") format("woff2");
+  font-weight: 200 800;
   font-style: italic;
   font-display: swap;
 }
@@ -40,7 +65,7 @@
 
 body {
   margin: 0;
-  font-family: "Schibsted Grotesk", system-ui, -apple-system, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   /* System colors, not literals — they follow `color-scheme` on the frame
      painted before the stored preference loads. */
   background: Canvas;

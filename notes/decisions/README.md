@@ -62,4 +62,6 @@ For a narrative pass through the whole decision arc, read them in numerical orde
 | [0029](./0029-an-expired-banner-session-is-a-typed-error.md) | An expired Banner session is a typed error, not a SyntaxError | Accepted | 2026-07-09 |
 | [0030](./0030-exactly-one-terminal-event-from-the-turn-that-owns-the-spinner.md) | Exactly one terminal event, from the turn that owns the spinner | Accepted | 2026-07-09 |
 | [0031](./0031-native-app-surface-grammar.md) | The native-app surface grammar (chrome, settings, composer, motion) · Amends 0025 · Amended by 0032 | Accepted | 2026-07-09 |
-| [0032](./0032-the-claude-app-dialect.md) | The Claude-app dialect: warm paper, one grotesque, pinned-turn scrolling, paced streaming · Amends 0024/0031 | Accepted | 2026-07-09 |
+| [0032](./0032-the-claude-app-dialect.md) | The Claude-app dialect: warm paper, one grotesque, pinned-turn scrolling, paced streaming · Amends 0024/0031 · Amended by 0033 | Accepted | 2026-07-09 |
+| [0033](./0033-two-tier-type-serif-display-grotesque-ui.md) | Two-tier type: a Newsreader serif display layer (greeting, wordmark) over the grotesque UI · Amends 0032's "one grotesque" · Body face swapped by 0034 | Accepted | 2026-07-12 |
+| [0034](./0034-body-face-hanken-grotesk-rounder-styrene-standin.md) | Body face: Hanken Grotesk, the rounder Styrene stand-in (swaps Schibsted; two-tier structure stands) · Amends 0032/0033 | Accepted | 2026-07-12 |

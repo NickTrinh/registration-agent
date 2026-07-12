@@ -8,11 +8,17 @@ export default {
   darkMode: "class",
   theme: {
     extend: {
-      // ADR 0032: one bundled grotesque (the @font-face pair in styles.css).
-      // Listed first so every `font-sans` element — which is everything —
-      // resolves to it; system-ui stays as the it-must-always-paint fallback.
+      // ADR 0034: one bundled grotesque (the @font-face pair in styles.css) —
+      // Hanken Grotesk, the rounded/humanist Styrene stand-in that replaced
+      // Schibsted. Listed first so every `font-sans` element — which is
+      // everything — resolves to it; system-ui stays as the must-always-paint
+      // fallback.
       fontFamily: {
-        sans: ['"Schibsted Grotesk"', "system-ui", "-apple-system", "sans-serif"],
+        sans: ['"Hanken Grotesk"', "system-ui", "-apple-system", "sans-serif"],
+        // ADR 0033: the display/personality tier. `font-serif` is applied
+        // deliberately — greeting, wordmark — never as a blanket. Georgia is
+        // the it-must-always-paint system-serif fallback.
+        serif: ['"Newsreader"', "Georgia", '"Times New Roman"', "serif"],
       },
       colors: {
         fordham: {

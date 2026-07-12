@@ -939,10 +939,12 @@ export default function AuditChat({
                 Onboarding complete — memories saved · view them in Settings
               </p>
             )}
-            {/* The Claude-app open (ADR 0032): a warm greeting where the
+            {/* The Claude-app open (ADR 0032/0033): a warm greeting where the
                 manual sentence used to be; the suggestions carry the "what
-                can I ask" job on their own. */}
-            <p className="text-xl font-semibold tracking-tight text-stone-900 dark:text-stone-100 mb-3">
+                can I ask" job on their own. Display serif (Newsreader) at
+                medium — high-contrast faces read best larger and lighter than
+                a grotesque headline, so semibold/tracking-tight are dropped. */}
+            <p className="font-serif text-[26px] font-medium leading-tight text-stone-900 dark:text-stone-100 mb-4">
               {greeting}
             </p>
             <div className="divide-y divide-stone-100 dark:divide-stone-800 border-y border-stone-100 dark:border-stone-800">
