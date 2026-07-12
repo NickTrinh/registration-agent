@@ -947,7 +947,12 @@ export default function AuditChat({
             <p className="font-serif text-[26px] font-medium leading-tight text-stone-900 dark:text-stone-100 mb-4">
               {greeting}
             </p>
-            <div className="divide-y divide-stone-100 dark:divide-stone-800 border-y border-stone-100 dark:border-stone-800">
+            {/* Hairline stone-200, not stone-100 (round-3 fix): these dividers
+                sit directly on the warm paper, not inside a white card, so
+                stone-100 dissolved into the background exactly as the settings
+                cards did. stone-200 is the same hairline value that restored
+                the card edge. Dark reads on lightness alone (stone-800). */}
+            <div className="divide-y divide-stone-200 dark:divide-stone-800 border-y border-stone-200 dark:border-stone-800">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
