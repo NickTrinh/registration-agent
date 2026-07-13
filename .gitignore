@@ -31,3 +31,4 @@ Thumbs.db
 # Editor / IDE scratch
 *.swp
 *~
+__pycache__/
