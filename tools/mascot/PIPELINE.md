@@ -55,4 +55,14 @@ arm pinned) · whatif regen'd (purple spiral + sparks + rubbing hand). Pink fixe
 Timing: idle 180ms · walk 120 · wave 140 · whatif 160 · default 200.
 
 Integration after gate: Maren wires strips via CSS steps() (mechanism proven in her 0035 spike;
-sprite in panel, prefers-reduced-motion static fallback).
+sprite in panel, prefers-reduced-motion static fallback). Landed `d68f23e`. Render-size rule
+from that pass: 130px cells are crisp ONLY at 1x and exact integer halves (65px) — a placement
+needing an in-between size gets a natively-rendered smaller strip, never CSS scaling.
+
+## Logo (Patch-approved 07-13)
+`assets/logo.png` — header wordmark lockup: pixel-art Fordhawke head facing left + "Ram Plan"
+in fountain-pen cursive (brown ink, gold flourish). One-shot via `logo.py` (gen + key), NOT the
+sprite chain — cursive strokes don't survive refine.py's downscale/quantize, so it's chroma-keyed
+at full res (1199x313). Fix history: the raw carries a DARK magenta halo (~rgb 139,0,136) outside
+the art's own outline that the bright-magenta defringe misses — logo.py kills by magenta HUE at
+any brightness (safe only because the logo has no purple props; don't port blindly to whatif).
