@@ -13,6 +13,7 @@ import Message from "../components/Message";
 import Notice from "../components/Notice";
 import StatusStrip from "../components/StatusStrip";
 import FirstRun, { DEGREEWORKS_URL } from "../components/FirstRun";
+import Mascot, { GreeterMascot, type MascotState } from "../components/Mascot";
 
 const SUGGESTIONS = [
   "What do I still need to graduate?",
@@ -939,6 +940,11 @@ export default function AuditChat({
                 Onboarding complete — memories saved · view them in Settings
               </p>
             )}
+            {/* Fordhawke greets the blank slate: a wave, then idle breathing.
+                The mascot lives only in the empty state — once the worksheet
+                fills, the work is the subject and the ram steps aside (it
+                returns as the small thinking-line companion during a turn). */}
+            <GreeterMascot size={130} className="-ml-2 mb-1" />
             {/* The Claude-app open (ADR 0032/0033): a warm greeting where the
                 manual sentence used to be; the suggestions carry the "what
                 can I ask" job on their own. Display serif (Newsreader) at
@@ -1043,8 +1049,17 @@ export default function AuditChat({
           const phrase = inFlight
             ? TOOL_PHRASES[inFlight.name] ?? thinkingPhrase
             : thinkingPhrase;
+          // The mascot mirrors the phrase's honesty: a what-if audit gets the
+          // fortune-teller pose, any other tool call gets "reading" (it's
+          // looking something up), and the pure-reasoning gap gets "ponder".
+          const mascotState: MascotState = inFlight
+            ? inFlight.name === "run_what_if"
+              ? "whatif"
+              : "reading"
+            : "ponder";
           return (
-            <div className="animate-msg-in">
+            <div className="flex items-center gap-2 animate-msg-in">
+              <Mascot state={mascotState} size={65} className="shrink-0" />
               {/* shimmer-text owns the ink (bg-clip-text): a lighter band
                   sweeps the phrase so the pane visibly lives through a long
                   tool call. Frozen — but still legible — under

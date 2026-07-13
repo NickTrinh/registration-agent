@@ -125,6 +125,77 @@ body {
   }
 }
 
+/* Fordhawke sprite sheet (see components/Mascot.tsx). A state is a horizontal
+   strip of uniform --cell squares; the animation steps background-position-x
+   one whole cell per frame with steps(N), so each frame lands exactly on a
+   cell boundary. --sprite (the hashed asset URL) and --cell (render size) come
+   in as inline custom properties; --frames and the per-state duration/step
+   count live on the state classes below. background-size locks height to the
+   cell and lets width scale proportionally, so one keyframe serves every size.
+   pixelated is non-negotiable — these are true pixel art. */
+.mascot {
+  display: inline-block;
+  width: var(--cell);
+  height: var(--cell);
+  background-image: var(--sprite);
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: auto var(--cell);
+  image-rendering: pixelated;
+}
+@keyframes mascot-play {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: calc(var(--frames) * var(--cell) * -1);
+  }
+}
+/* Timings are Patch's 07-13 gate values (PIPELINE.md): ms/frame x frame count.
+   steps() needs a literal count — it cannot read a custom property — so each
+   state carries its own animation declaration rather than sharing one. */
+.mascot--idle {
+  --frames: 6;
+  animation: mascot-play 1080ms steps(6) infinite;
+}
+.mascot--walk {
+  --frames: 8;
+  animation: mascot-play 960ms steps(8) infinite;
+}
+.mascot--walk-left {
+  --frames: 8;
+  animation: mascot-play 960ms steps(8) infinite;
+}
+.mascot--wave {
+  --frames: 8;
+  animation: mascot-play 1120ms steps(8) infinite;
+}
+.mascot--ponder {
+  --frames: 6;
+  animation: mascot-play 1200ms steps(6) infinite;
+}
+.mascot--whatif {
+  --frames: 8;
+  animation: mascot-play 1280ms steps(8) infinite;
+}
+.mascot--reading {
+  --frames: 6;
+  animation: mascot-play 1200ms steps(6) infinite;
+}
+/* Reduced motion: freeze on frame 0. The component also forces the idle sprite
+   in this case, so the rest state is a standing ram, not a stalled gesture.
+   This rule is the belt to that suspenders — it holds even before JS runs. */
+.mascot--static {
+  animation: none !important;
+  background-position-x: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascot {
+    animation: none !important;
+    background-position-x: 0 !important;
+  }
+}
+
 /* Motion marks a state transition; it never decorates. A student who asked the
    OS to stop moving things gets a still panel — including the chat's smooth
    scroll, which passes `behavior` from JS and so needs a matching matchMedia
