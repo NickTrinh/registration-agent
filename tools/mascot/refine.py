@@ -18,10 +18,17 @@ WARM_PAPER = (250, 247, 240, 255)
 
 
 def master_palette(master: Image.Image, colors: int) -> Image.Image:
-    """Palette image from the master's opaque pixels."""
+    """Palette image from the master's opaque, non-magenta pixels.
+
+    The master may be flat RGB on magenta: without excluding magenta-ish
+    pixels the chroma key lands IN the palette and edge pixels quantize
+    to pink spots."""
     m = master.convert("RGBA")
     a = np.array(m)
-    opaque = a[a[..., 3] > 128][:, :3]
+    r, g, b = a[..., 0].astype(int), a[..., 1].astype(int), a[..., 2].astype(int)
+    magenta = (r > 150) & (b > 150) & (g < 140)
+    keep = (a[..., 3] > 128) & ~magenta
+    opaque = a[keep][:, :3]
     src = Image.fromarray(opaque.reshape(1, -1, 3), "RGB")
     return src.quantize(colors=colors, method=Image.MEDIANCUT)
 
@@ -33,6 +40,17 @@ def snap(frame: Image.Image, pal: Image.Image, px_h: int) -> Image.Image:
     f = frame.convert("RGBA")
     w = max(1, round(f.width * px_h / f.height))
     small = f.resize((w, px_h), Image.BOX)
+    # Defringe: BOX averages residual magenta into partial-alpha edge pixels.
+    # Kill pinkish (r,b >> g) pixels, but ONLY on the partial-alpha rim so
+    # legit interior purples (crystal ball) survive.
+    arr = np.array(small)
+    r, g, b, al = (arr[..., i].astype(int) for i in range(4))
+    # Magenta signature: r ~= b, both high, g far below. Purple props
+    # (crystal ball: b >> r) must NOT match.
+    magentaish = (np.abs(r - b) < 60) & (r > 140) & (b > 140) & (g < r - 60)
+    hard = magentaish & (r > 170) & (b > 170) & (g < 110)  # true bg holes, any alpha
+    arr[..., 3][(magentaish & (al < 255)) | hard] = 0
+    small = Image.fromarray(arr)
     alpha = small.getchannel("A").point(lambda v: 255 if v > 100 else 0)
     rgb = small.convert("RGB").quantize(palette=pal, dither=Image.NONE).convert("RGB")
     out = rgb.convert("RGBA")

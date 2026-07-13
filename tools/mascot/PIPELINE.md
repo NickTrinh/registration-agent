@@ -30,17 +30,29 @@ State as of 2026-07-13. Canon + process for generating the RamPlan panel mascot.
    (250,247,240) at 2x NEAREST → `C:\Users\Public\ramplan-mascot-preview\current\`.
    Idle previews as ping-pong (1-2-3-4-3-2 @220ms); locomotion straight loop @150ms.
 
-## Approved so far (4-frame, 128px)
-`strips/{idle,walk,wave}-strip.png` — Patch gated the walk at 128; idle/wave delivered 07-13.
-These may be superseded by the smoother batch below.
+## Smoother batch (delivered, awaiting final gate)
+All 7 states at 128px in `strips/`: idle (6f) · walk (8f) · walk-left (8f, free mirror of
+walk — same frames flipped) · wave (8f) · ponder (6f) · whatif (8f) · reading (6f).
+`batch.py <state>...` drives process→refine→strip→preview from `work/<state>-raw.png`.
+Spend ~$0.62 of the $4.00 allowance (9 generations: 7 states + ponder & wave/whatif retries).
 
-## Next batch (Patch-authorized, ~$4.00 allowance, 07-13)
-Smoother = more frames: 6-8 per state (2x3 / 2x4 anchor sheets). States:
-- idle · walk-right · **walk-left = deterministic mirror of walk-right** (flip; backpack/F-pin
-  will mirror — accepted, vscode-pets does the same) · wave
-- **ponder** (thinking pose — reference board's Ponder: scroll/paper + hand to chin)
-- **what-if** (wizard hat + crystal ball — new props, keep suit)
-- **reading** (puts on glasses, scans a book)
-Budget math: ~$0.07/generation; 6 generated states x ~2 attempts + retries fits well under $4.
+Fix history (hard-won; don't regress):
+- **Pink pixels** (Patch round-1 critique): TWO bugs. (a) master-pixel.png is flat RGB, so
+  `master_palette` had magenta IN the quantize palette; now excluded. (b) BOX downscale blends
+  magenta into partial-alpha rim pixels; refine.py defringes by magenta *signature* (r≈b, both
+  high, g far below) — NOT a broad pink test, which would eat the whatif purple ball.
+- **whatif purple ball**: three killers found in sequence — forge flood-fill `--edge-threshold
+  150` chews INTO the ball (mid-purples are 115-145 from magenta; use 90 via EXTRA_PROC_ARGS);
+  refine's broad pink defringe (fixed above); and one-pot mediancut (master's ~1M px drown the
+  ball's ~200/frame — palette now RESERVES 16 slots quantized from purple pixels only).
+- **Zoom drift**: model draws larger than the anchor → QC edge-touch fail. RULES now pin
+  "central 70% ... matching Image 2's figure size". Ponder needed this.
+- **Source-edge touch on intact contours** (wave caps): batch.py auto-retries with
+  `--allow-source-edge-touch` + loud WARNING; forge doctrine says inspect the strip after.
+
+Patch round-1 verdicts (07-13): idle/walk/ponder/reading good · wave regen'd (8f, short chibi
+arm pinned) · whatif regen'd (purple spiral + sparks + rubbing hand). Pink fixed pipeline-wide.
+Timing: idle 180ms · walk 120 · wave 140 · whatif 160 · default 200.
+
 Integration after gate: Maren wires strips via CSS steps() (mechanism proven in her 0035 spike;
 sprite in panel, prefers-reduced-motion static fallback).
