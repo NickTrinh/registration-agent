@@ -13,7 +13,7 @@ import Message from "../components/Message";
 import Notice from "../components/Notice";
 import StatusStrip from "../components/StatusStrip";
 import FirstRun, { DEGREEWORKS_URL } from "../components/FirstRun";
-import Mascot, { GreeterMascot, type MascotState } from "../components/Mascot";
+import { ResidentMascot, type MascotState } from "../components/Mascot";
 
 const SUGGESTIONS = [
   "What do I still need to graduate?",
@@ -145,6 +145,25 @@ export default function AuditChat({
   // after mount (storage reads are async — without the firstName dep the
   // greeting would greet a stranger for the whole session).
   const emptyChat = messages.length === 0;
+
+  // The resident mascot's pose while a turn is in flight. Mirrors the thinking
+  // phrase's honesty: a what-if audit gets the fortune-teller (whatif), any
+  // other tool call gets reading, and the pure-reasoning gap gets ponder. Null
+  // when idle — the mascot returns to its breathing loop. Same derivation the
+  // shimmer phrase uses, one level up so the corner ram can read it.
+  const mascotActivity: MascotState | null = (() => {
+    if (!loading) return null;
+    const last = messages[messages.length - 1];
+    const inFlight =
+      last?.role === "assistant" && !last.systemAction
+        ? (last.toolEvents ?? []).find(
+            (e) => e.courseCount === undefined && e.error === undefined
+          )
+        : undefined;
+    if (inFlight) return inFlight.name === "run_what_if" ? "whatif" : "reading";
+    return "ponder";
+  })();
+
   const greetingIndexRef = useRef(Math.floor(Math.random() * GREETINGS.length));
   const greeting = useMemo(
     () => (emptyChat ? GREETINGS[greetingIndexRef.current](firstName) : ""),
@@ -894,19 +913,39 @@ export default function AuditChat({
       ) : null}
 
       {/* Messages — scrollContainerRef drives the user-lock scroll behavior.
-          Wrapper is relative so the "↓ Jump to latest" button can sit
-          absolute-positioned over the scroll area without being clipped. */}
+          Wrapper is relative so the "↓ Jump to latest" button and the resident
+          mascot can sit absolute-positioned over the scroll area without being
+          clipped. */}
       <div className="flex-1 relative overflow-hidden">
+        {/* Jump-to-latest sits center-bottom, not its old bottom-right — the
+            resident mascot now owns that corner and the two would collide. */}
         {!isAtBottom && (
           <button
             onClick={scrollToBottomImmediately}
             aria-label="Jump to latest"
-            className="absolute bottom-3 right-3 z-10 flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-fordham-maroon/90 hover:bg-fordham-maroon text-white text-xs font-medium shadow-md backdrop-blur-sm"
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-fordham-maroon/90 hover:bg-fordham-maroon text-white text-xs font-medium shadow-md backdrop-blur-sm"
           >
             <span aria-hidden>↓</span>
             <span>Latest</span>
           </button>
         )}
+        {/* The resident: Fordhawke lives in the bottom-right corner of the pane,
+            above the composer — pinned over the scroll (not in it), so he holds
+            the corner while the log moves. Idles at rest, takes the turn's pose
+            while it's in flight. pointer-events-none so he never eats a tap
+            meant for a message or link beneath him. Overlay, not float: a
+            scroll-independent corner and true text-wrap can't coexist in a
+            scrolling pane, and "always in the corner" won. He fades out while
+            the student scrolls UP into history (an opaque 130px figure would
+            occlude the bottom-right of whatever they're re-reading); at the
+            live edge — the resting view — he's present, and the floor spacer
+            keeps the last message clear of him. */}
+        <ResidentMascot
+          activity={mascotActivity}
+          className={`mascot-resident transition-opacity duration-300 ${
+            isAtBottom ? "opacity-100" : "opacity-0"
+          }`}
+        />
       <div
         ref={scrollContainerRef}
         className="h-full overflow-y-auto p-3 space-y-3"
@@ -940,11 +979,6 @@ export default function AuditChat({
                 Onboarding complete — memories saved · view them in Settings
               </p>
             )}
-            {/* Fordhawke greets the blank slate: a wave, then idle breathing.
-                The mascot lives only in the empty state — once the worksheet
-                fills, the work is the subject and the ram steps aside (it
-                returns as the small thinking-line companion during a turn). */}
-            <GreeterMascot size={130} className="-ml-2 mb-1" />
             {/* The Claude-app open (ADR 0032/0033): a warm greeting where the
                 manual sentence used to be; the suggestions carry the "what
                 can I ask" job on their own. Display serif (Newsreader) at
@@ -1049,21 +1083,13 @@ export default function AuditChat({
           const phrase = inFlight
             ? TOOL_PHRASES[inFlight.name] ?? thinkingPhrase
             : thinkingPhrase;
-          // The mascot mirrors the phrase's honesty: a what-if audit gets the
-          // fortune-teller pose, any other tool call gets "reading" (it's
-          // looking something up), and the pure-reasoning gap gets "ponder".
-          const mascotState: MascotState = inFlight
-            ? inFlight.name === "run_what_if"
-              ? "whatif"
-              : "reading"
-            : "ponder";
           return (
-            <div className="flex items-center gap-2 animate-msg-in">
-              <Mascot state={mascotState} size={65} className="shrink-0" />
+            <div className="animate-msg-in">
               {/* shimmer-text owns the ink (bg-clip-text): a lighter band
                   sweeps the phrase so the pane visibly lives through a long
                   tool call. Frozen — but still legible — under
-                  prefers-reduced-motion. Implements: ADR 0032. */}
+                  prefers-reduced-motion. Implements: ADR 0032. The mascot's
+                  matching pose lives in the resident corner, not inline here. */}
               <p aria-hidden className="text-[13px] italic shimmer-text">
                 {phrase}…
               </p>
@@ -1071,6 +1097,10 @@ export default function AuditChat({
             </div>
           );
         })()}
+        {/* Floor for the resident: reserves the bottom band so the last
+            message's text clears the ram's ~130px overlay instead of running
+            under it. The ram stands in this gap, above the composer. */}
+        <div aria-hidden className="h-32 shrink-0" />
         <div ref={bottomRef} />
       </div>
       </div>

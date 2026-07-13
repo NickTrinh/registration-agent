@@ -79,12 +79,12 @@ export default function App() {
         <img
           src={logoUrl}
           alt="Ram Plan"
-          className="h-7 w-auto select-none dark:hidden"
+          className="h-8 w-auto select-none dark:hidden"
         />
         <img
           src={logoDarkUrl}
           alt="Ram Plan"
-          className="hidden h-7 w-auto select-none dark:block"
+          className="hidden h-8 w-auto select-none dark:block"
         />
         {/* iOS segmented control: recessed track, raised active segment.
             stone-200/70 — stone-100 vanished against the stone-50 bar. */}

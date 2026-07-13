@@ -182,6 +182,21 @@ body {
   --frames: 6;
   animation: mascot-play 1200ms steps(6) infinite;
 }
+/* The resident mascot's corner anchor: an overlay pinned to the pane's
+   bottom-right, above the composer, that does NOT scroll with the log. Chrome
+   ignores position:sticky on floats, so a float can't both wrap text and stay
+   bottom-pinned — this keeps the pin (the load-bearing "always in the corner"),
+   and accepts that message text passes under rather than around it. It sits
+   just inside the right/bottom edge; pointer-events:none lets clicks reach the
+   links and messages beneath. z-index clears the streaming prose. */
+.mascot-resident {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.25rem;
+  z-index: 10;
+  pointer-events: none;
+}
+
 /* Reduced motion: freeze on frame 0. The component also forces the idle sprite
    in this case, so the rest state is a standing ram, not a stalled gesture.
    This rule is the belt to that suspenders — it holds even before JS runs. */

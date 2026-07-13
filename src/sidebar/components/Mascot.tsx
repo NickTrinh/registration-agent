@@ -99,21 +99,25 @@ export default function Mascot({
   );
 }
 
-// The empty-state greeter: one wave on arrival, then settles to idle breathing.
-// Remounts (returning to an empty chat) re-greet, which is the intent — the ram
-// says hello when you land on a blank slate. Under reduced motion the wave and
-// the idle both resolve to the same still frame, so the timer is harmless.
-export function GreeterMascot({
-  size,
+// The resident: Fordhawke living in the corner of the chat pane, always on.
+// Waves once on arrival, then breathes idle at rest; while a turn is in flight
+// the caller passes an `activity` pose (whatif/reading/ponder) and it takes
+// over. Activity always wins over the opening wave. Under reduced motion every
+// pose resolves to the same still idle frame, so the wave timer is harmless.
+export function ResidentMascot({
+  activity,
+  size = 130,
   className,
 }: {
+  activity?: MascotState | null;
   size?: number;
   className?: string;
 }) {
-  const [state, setState] = useState<MascotState>("wave");
+  const [greeting, setGreeting] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setState("idle"), 1120); // one full wave cycle
+    const t = setTimeout(() => setGreeting(false), 1120); // one full wave cycle
     return () => clearTimeout(t);
   }, []);
+  const state: MascotState = activity ?? (greeting ? "wave" : "idle");
   return <Mascot state={state} size={size} className={className} />;
 }
