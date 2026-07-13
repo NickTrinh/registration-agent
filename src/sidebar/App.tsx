@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import AuditChat from "./pages/AuditChat";
 import Settings from "./pages/Settings";
 import logoUrl from "../../tools/mascot/assets/logo.png";
+import logoDarkUrl from "../../tools/mascot/assets/logo-dark.png";
 import {
   applyTheme,
   loadThemePreference,
@@ -64,14 +65,27 @@ export default function App() {
           moment content scrolls beneath the bar. */}
       <header className="flex items-center justify-between pl-4 pr-2 py-2 bg-stone-50/80 dark:bg-stone-900/80 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800 shrink-0 z-10">
         {/* Brand lockup: the single "Ram Plan" logo image — the pixel-art
-            Fordhawke head + a fountain-pen cursive wordmark, baked as one asset
-            (tools/mascot/assets/logo.png). It supersedes the 0036 crest-plus-
-            Newsreader pairing: the head and the nameplate now ship as one
-            lockup, so the header carries one mark, not two. Brown ink on
-            transparent — a full-color island that does NOT theme-swap; on dark
-            surfaces the head still reads while the cursive rides low-contrast
-            (a dark-mode logo variant is a pipeline job, not a CSS filter). */}
-        <img src={logoUrl} alt="Ram Plan" className="h-7 w-auto select-none" />
+            Fordhawke head + a fountain-pen cursive wordmark, baked as one asset.
+            It supersedes the 0036 crest-plus-Newsreader pairing: head and
+            nameplate ship as one lockup, so the header carries one mark.
+            Two bakes, not a CSS filter: logo.png (brown cursive) for light,
+            logo-dark.png (cream cursive, ~13:1 on stone-900) for dark — the
+            head and gold flourish are identical in both. Toggled by the .dark
+            class, the same class-based mechanism the whole app themes on (a
+            <picture>/prefers-color-scheme swap would ignore the explicit
+            light/dark override in Settings). `hidden` is display:none, so the
+            inactive bake is out of the a11y tree — same alt on both, but only
+            the shown one ever announces. */}
+        <img
+          src={logoUrl}
+          alt="Ram Plan"
+          className="h-7 w-auto select-none dark:hidden"
+        />
+        <img
+          src={logoDarkUrl}
+          alt="Ram Plan"
+          className="hidden h-7 w-auto select-none dark:block"
+        />
         {/* iOS segmented control: recessed track, raised active segment.
             stone-200/70 — stone-100 vanished against the stone-50 bar. */}
         <nav
