@@ -97,9 +97,40 @@ def key() -> None:
     print(f"logo: {img.width}x{img.height} -> {OUT} + {prev}")
 
 
+def dark() -> None:
+    """Dark-mode variant: same letterforms, ink remapped. The head survives
+    dark backgrounds (cream/gold); the dark-brown cursive ghosts (~1.8:1 on
+    stone-900). Deterministic recolor of the TEXT region only — never
+    regenerate, or the two modes get different lettering. Gold flourish
+    (g high) kept; brown ink (g low) -> warm cream."""
+    a = np.array(Image.open(OUT).convert("RGBA"))
+    alpha_cols = (a[..., 3] > 0).sum(axis=0)
+    gaps = [x for x in range(200, a.shape[1] - 200) if alpha_cols[x] == 0]
+    if not gaps:
+        sys.exit("logo dark: no head/text gap found - layout changed?")
+    split = gaps[len(gaps) // 2]
+    text = a[:, split:]
+    g = text[..., 1].astype(int)
+    ink = (text[..., 3] > 0) & (g < 80)          # brown strokes, not gold
+    text[..., :3][ink] = (242, 231, 209)          # warm cream, matches the face
+    out = Image.fromarray(a)
+    dst = OUT.replace(".png", "-dark.png")
+    out.save(dst)
+
+    stone900 = (28, 25, 23, 255)
+    bg = Image.new("RGBA", (out.width + 80, out.height + 60), stone900)
+    bg.alpha_composite(out, (40, 30))
+    os.makedirs(PREVIEW_DIR, exist_ok=True)
+    prev = os.path.join(PREVIEW_DIR, "logo-dark.png")
+    bg.convert("RGB").save(prev)
+    print(f"logo-dark: split@{split} -> {dst} + {prev}")
+
+
 if __name__ == "__main__":
     steps = sys.argv[1:] or ["gen", "key"]
     if "gen" in steps:
         gen()
     if "key" in steps:
         key()
+    if "dark" in steps:
+        dark()
