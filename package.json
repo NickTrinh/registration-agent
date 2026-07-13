@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:win": "vite build && rsync -a --delete dist/ /mnt/c/Users/Public/ramplan-dist/"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

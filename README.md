@@ -17,6 +17,11 @@ npm install
 npm run build     # → dist/
 ```
 
+> **WSL2 note:** Chrome (Windows) can't reliably load an unpacked extension from the WSL
+> filesystem — keep a Windows-side copy and load *that*. `npm run build:win` builds and
+> rsyncs `dist/` → `C:\Users\Public\ramplan-dist`; loading from a stale copy is the classic
+> "my changes aren't showing up".
+
 In Chrome:
 
 1. Open `chrome://extensions`, toggle **Developer mode** on, click **Load unpacked**, and select `dist/`.
