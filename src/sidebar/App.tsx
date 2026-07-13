@@ -1,6 +1,6 @@
 // Implements: ADR 0031 (native-app surface grammar — chrome + navigation)
 // Implements: ADR 0032 (warm-paper chrome, bundled grotesque wordmark)
-// Implements: ADR 0035 (ram logo mark + italic Newsreader wordmark lockup)
+// Implements: ADR 0036 (Fordhawke crest logo + upright Newsreader nameplate)
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import AuditChat from "./pages/AuditChat";
 import Settings from "./pages/Settings";
@@ -63,15 +63,17 @@ export default function App() {
           without painting its navigation bar blue. backdrop-blur matters the
           moment content scrolls beneath the bar. */}
       <header className="flex items-center justify-between pl-4 pr-2 py-2 bg-stone-50/80 dark:bg-stone-900/80 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800 shrink-0 z-10">
-        {/* Brand lockup (ADR 0035): the ram mark + the serif wordmark, both
-            carrying maroon ink on the light bar / `maroon.ink` on dark — one
-            text-color declaration themes the glyph (currentColor) and the word
-            together. The wordmark is Newsreader ITALIC now, not upright: the
-            display serif's italic has genuine calligraphic character (the
-            serif/cursive read Patch asked for) without adding a script face. */}
+        {/* Brand lockup (ADR 0036): the Fordhawke crest + the serif nameplate.
+            The crest is a full-color logo (its own gold/cream/brown palette),
+            so — unlike 0035's currentColor glyph — it does NOT theme-swap; it
+            holds constant while the wordmark carries maroon / `maroon.ink` via
+            this container's text color. The wordmark is upright Newsreader now,
+            not italic: Patch wanted a LOGO, not a font doing the work, so the
+            crest carries the personality and the nameplate stays clean and
+            subordinate. */}
         <div className="flex items-center gap-2 text-fordham-maroon dark:text-fordham-maroon-ink select-none">
-          <RamMark className="w-[22px] h-[22px]" />
-          <span className="font-serif italic text-[19px] font-semibold tracking-tight">
+          <RamMark className="w-[28px] h-[28px] shrink-0" />
+          <span className="font-serif text-[19px] font-semibold tracking-tight">
             RamPlan
           </span>
         </div>
