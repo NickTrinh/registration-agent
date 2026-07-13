@@ -13,7 +13,13 @@ import Message from "../components/Message";
 import Notice from "../components/Notice";
 import StatusStrip from "../components/StatusStrip";
 import FirstRun, { DEGREEWORKS_URL } from "../components/FirstRun";
-import { ResidentMascot, type MascotState } from "../components/Mascot";
+import {
+  ResidentMascot,
+  usePrefersReducedMotion,
+  type MascotState,
+} from "../components/Mascot";
+import { useMascotDirector } from "../useMascotDirector";
+import type { Beat } from "../mascotDirector";
 
 const SUGGESTIONS = [
   "What do I still need to graduate?",
@@ -159,24 +165,13 @@ export default function AuditChat({
         )
       : undefined;
 
-  // The resident mascot's pose while a turn is in flight. Mirrors the thinking
-  // phrase's honesty: a what-if audit gets the fortune-teller (whatif), any
-  // other tool call gets reading, and the pure-reasoning gap gets ponder. Null
-  // when idle — the mascot returns to its breathing loop.
-  const mascotActivity: MascotState | null = !loading
-    ? null
-    : inFlightTool
-      ? inFlightTool.name === "run_what_if"
-        ? "whatif"
-        : "reading"
-      : "ponder";
-
-  // The thought-bubble phrase (moved out of the message flow — the wait now
-  // reads as HIM thinking). Same logic the inline shimmer line used: hidden the
-  // moment the advisor's prose starts streaming (the growing text is its own
-  // indicator), otherwise the in-flight tool's plain-words phrase, otherwise
-  // the rotating reasoning phrase. Null when there's nothing to say.
-  const statusPhrase: string | null = (() => {
+  // What the current stream state WANTS the mascot doing, as one beat. A
+  // what-if gets the fortune-teller, any other tool gets reading, the
+  // pure-reasoning gap gets ponder. This is the RAW desire — it flips every
+  // time a tool starts or finishes, so it's fed to the director (below) rather
+  // than rendered directly. Null when idle or once prose is streaming (the
+  // growing answer is its own indicator; let the last pose drain, then idle).
+  const desiredBeat: Beat | null = (() => {
     if (!loading) return null;
     const last = messages[messages.length - 1];
     if (
@@ -186,10 +181,25 @@ export default function AuditChat({
     ) {
       return null;
     }
-    return inFlightTool
-      ? TOOL_PHRASES[inFlightTool.name] ?? thinkingPhrase
-      : thinkingPhrase;
+    if (inFlightTool) {
+      return {
+        pose: inFlightTool.name === "run_what_if" ? "whatif" : "reading",
+        toolPhrase: TOOL_PHRASES[inFlightTool.name] ?? null,
+      };
+    }
+    return { pose: "ponder", toolPhrase: null };
   })();
+
+  // The director gives each pose a real beat — a min-hold + a coalesced queue —
+  // so a one-second what-if actually plays out instead of blinking past. Pose
+  // AND phrase both read off its DISPLAYED beat, so the bubble never claims
+  // something the ram isn't doing. Reduced motion bypasses the holds entirely.
+  const reducedMotion = usePrefersReducedMotion();
+  const displayedBeat = useMascotDirector(desiredBeat, loading, reducedMotion);
+  const mascotActivity: MascotState | null = displayedBeat?.pose ?? null;
+  const statusPhrase: string | null = displayedBeat
+    ? displayedBeat.toolPhrase ?? thinkingPhrase
+    : null;
 
   const greetingIndexRef = useRef(Math.floor(Math.random() * GREETINGS.length));
   const greeting = useMemo(

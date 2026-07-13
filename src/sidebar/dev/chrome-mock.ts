@@ -11,6 +11,7 @@
 //   /src/sidebar/dev.html?state=firstrun-mid    key + audit present, 2/3
 //   /src/sidebar/dev.html?state=empty           ready, suggestions visible
 //   /src/sidebar/dev.html?state=chat            restored conversation
+//   /src/sidebar/dev.html?state=whatif          fast run_what_if (pose-hold test)
 //   /src/sidebar/dev.html?state=saves           onboarding save batch bubble
 //   /src/sidebar/dev.html?state=error           AI_CHAT replies with AI_ERROR
 //   /src/sidebar/dev.html?state=toolcap         AI_CHAT ends at the tool cap
@@ -197,6 +198,31 @@ function chatScript(): Broadcast[] {
   return steps;
 }
 
+// A what-if turn where run_what_if returns FAST (~700ms in flight). Before the
+// movement director this made the whatif pose blink and vanish — the reason
+// Patch only ever saw ponder. Use ?state=whatif to watch the director hold the
+// crystal-ball beat for its full min-hold before reasoning takes over.
+const WHATIF_PROSE = (
+  "If you slot COMM 3233 into next spring, [NAME], your audit clears both the " +
+  "values seminar and the EP3 requirement — and it keeps Fridays open. One " +
+  "catch: it collides with your 11:30 lab, so you'd move the lab to the " +
+  "Tuesday section. Want me to check seats?"
+).split(" ");
+
+function whatIfScript(): Broadcast[] {
+  const steps: Broadcast[] = [
+    { delay: 400, msg: { type: "AI_TOOL_USE", name: "run_what_if", input: { add: ["COMM 3233"] } } },
+    { delay: 1100, msg: { type: "AI_TOOL_RESULT", courseCount: 1 } },
+  ];
+  let t = 1500;
+  for (const w of WHATIF_PROSE) {
+    steps.push({ delay: t, msg: { type: "AI_CHUNK", delta: w + " " } });
+    t += 40;
+  }
+  steps.push({ delay: t + 300, msg: { type: "AI_DONE" } });
+  return steps;
+}
+
 // ─── Scenarios ────────────────────────────────────────────────────────────────
 
 const READY_BASE: Scenario = {
@@ -230,6 +256,11 @@ const SCENARIOS: Record<string, Scenario> = {
   chat: {
     ...READY_BASE,
     session: { chat_messages: CHAT_SESSION },
+  },
+  whatif: {
+    ...READY_BASE,
+    session: { chat_messages: CHAT_SESSION },
+    onChat: whatIfScript(),
   },
   saves: {
     ...READY_BASE,
