@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import AuditChat from "./pages/AuditChat";
 import Settings from "./pages/Settings";
-import { RamMark } from "./components/RamMark";
+import logoUrl from "../../tools/mascot/assets/logo.png";
 import {
   applyTheme,
   loadThemePreference,
@@ -63,20 +63,15 @@ export default function App() {
           without painting its navigation bar blue. backdrop-blur matters the
           moment content scrolls beneath the bar. */}
       <header className="flex items-center justify-between pl-4 pr-2 py-2 bg-stone-50/80 dark:bg-stone-900/80 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800 shrink-0 z-10">
-        {/* Brand lockup (ADR 0036): the Fordhawke crest + the serif nameplate.
-            The crest is a full-color logo (its own gold/cream/brown palette),
-            so — unlike 0035's currentColor glyph — it does NOT theme-swap; it
-            holds constant while the wordmark carries maroon / `maroon.ink` via
-            this container's text color. The wordmark is upright Newsreader now,
-            not italic: Patch wanted a LOGO, not a font doing the work, so the
-            crest carries the personality and the nameplate stays clean and
-            subordinate. */}
-        <div className="flex items-center gap-2 text-fordham-maroon dark:text-fordham-maroon-ink select-none">
-          <RamMark className="w-[28px] h-[28px] shrink-0" />
-          <span className="font-serif text-[19px] font-semibold tracking-tight">
-            RamPlan
-          </span>
-        </div>
+        {/* Brand lockup: the single "Ram Plan" logo image — the pixel-art
+            Fordhawke head + a fountain-pen cursive wordmark, baked as one asset
+            (tools/mascot/assets/logo.png). It supersedes the 0036 crest-plus-
+            Newsreader pairing: the head and the nameplate now ship as one
+            lockup, so the header carries one mark, not two. Brown ink on
+            transparent — a full-color island that does NOT theme-swap; on dark
+            surfaces the head still reads while the cursive rides low-contrast
+            (a dark-mode logo variant is a pipeline job, not a CSS filter). */}
+        <img src={logoUrl} alt="Ram Plan" className="h-7 w-auto select-none" />
         {/* iOS segmented control: recessed track, raised active segment.
             stone-200/70 — stone-100 vanished against the stone-50 bar. */}
         <nav
