@@ -146,22 +146,49 @@ export default function AuditChat({
   // greeting would greet a stranger for the whole session).
   const emptyChat = messages.length === 0;
 
+  // The single in-flight tool call awaiting its result, if any: the last
+  // assistant turn's first tool event that has neither resolved (courseCount)
+  // nor errored. Drives BOTH the mascot's pose and its thought-bubble phrase,
+  // so the two can never disagree about what Fordhawke is doing.
+  const inFlightTool =
+    loading &&
+    messages[messages.length - 1]?.role === "assistant" &&
+    !messages[messages.length - 1]?.systemAction
+      ? (messages[messages.length - 1]?.toolEvents ?? []).find(
+          (e) => e.courseCount === undefined && e.error === undefined
+        )
+      : undefined;
+
   // The resident mascot's pose while a turn is in flight. Mirrors the thinking
   // phrase's honesty: a what-if audit gets the fortune-teller (whatif), any
   // other tool call gets reading, and the pure-reasoning gap gets ponder. Null
-  // when idle — the mascot returns to its breathing loop. Same derivation the
-  // shimmer phrase uses, one level up so the corner ram can read it.
-  const mascotActivity: MascotState | null = (() => {
+  // when idle — the mascot returns to its breathing loop.
+  const mascotActivity: MascotState | null = !loading
+    ? null
+    : inFlightTool
+      ? inFlightTool.name === "run_what_if"
+        ? "whatif"
+        : "reading"
+      : "ponder";
+
+  // The thought-bubble phrase (moved out of the message flow — the wait now
+  // reads as HIM thinking). Same logic the inline shimmer line used: hidden the
+  // moment the advisor's prose starts streaming (the growing text is its own
+  // indicator), otherwise the in-flight tool's plain-words phrase, otherwise
+  // the rotating reasoning phrase. Null when there's nothing to say.
+  const statusPhrase: string | null = (() => {
     if (!loading) return null;
     const last = messages[messages.length - 1];
-    const inFlight =
-      last?.role === "assistant" && !last.systemAction
-        ? (last.toolEvents ?? []).find(
-            (e) => e.courseCount === undefined && e.error === undefined
-          )
-        : undefined;
-    if (inFlight) return inFlight.name === "run_what_if" ? "whatif" : "reading";
-    return "ponder";
+    if (
+      last?.role === "assistant" &&
+      !last.systemAction &&
+      last.content.trim() !== ""
+    ) {
+      return null;
+    }
+    return inFlightTool
+      ? TOOL_PHRASES[inFlightTool.name] ?? thinkingPhrase
+      : thinkingPhrase;
   })();
 
   const greetingIndexRef = useRef(Math.floor(Math.random() * GREETINGS.length));
@@ -946,6 +973,33 @@ export default function AuditChat({
             isAtBottom ? "opacity-100" : "opacity-0"
           }`}
         />
+        {/* Fordhawke's thought bubble: the panel's ONE waiting indicator (ADR
+            0024), lifted out of the message flow (ADR 0032's inline shimmer)
+            into a cloud above his head so the wait reads as HIM thinking. Fades
+            with the mascot while the student scrolls UP (it points at him — if
+            he's hidden it must be too). aria-hidden: the sr-only status below
+            speaks for it. Tail dots descend toward his head. */}
+        {statusPhrase && (
+          <div
+            aria-hidden
+            className={`thought-bubble animate-msg-in transition-opacity duration-300 ${
+              isAtBottom ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <div className="rounded-2xl rounded-br-md border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 shadow-sm px-3 py-1.5">
+              {/* shimmer-text owns the ink (bg-clip-text) — a lighter band
+                  sweeps the phrase so the pane visibly lives through a long
+                  tool call; both gradient ends are legible inks, so a
+                  reduced-motion freeze still reads. Implements: ADR 0032. */}
+              <p className="text-[13px] italic shimmer-text leading-snug">
+                {statusPhrase}…
+              </p>
+            </div>
+            <span className="thought-dot thought-dot--1 border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800" />
+            <span className="thought-dot thought-dot--2 border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800" />
+          </div>
+        )}
+        {statusPhrase && <span className="sr-only">Advisor is thinking</span>}
       <div
         ref={scrollContainerRef}
         className="h-full overflow-y-auto p-3 space-y-3"
@@ -1059,44 +1113,9 @@ export default function AuditChat({
           </div>
         )}
 
-        {(() => {
-          // The panel's ONE waiting indicator (ADR 0024): a single derived
-          // phrase. If a tool call is awaiting its result, say what THAT tool
-          // is doing (TOOL_PHRASES); otherwise the rotating thinking phrase
-          // covers the pure-reasoning gap. Hidden the moment text streams —
-          // the growing prose is its own indicator.
-          if (!loading) return null;
-          const last = messages[messages.length - 1];
-          if (
-            last?.role === "assistant" &&
-            !last.systemAction &&
-            last.content.trim() !== ""
-          ) {
-            return null;
-          }
-          const inFlight =
-            last?.role === "assistant" && !last.systemAction
-              ? (last.toolEvents ?? []).find(
-                  (e) => e.courseCount === undefined && e.error === undefined
-                )
-              : undefined;
-          const phrase = inFlight
-            ? TOOL_PHRASES[inFlight.name] ?? thinkingPhrase
-            : thinkingPhrase;
-          return (
-            <div className="animate-msg-in">
-              {/* shimmer-text owns the ink (bg-clip-text): a lighter band
-                  sweeps the phrase so the pane visibly lives through a long
-                  tool call. Frozen — but still legible — under
-                  prefers-reduced-motion. Implements: ADR 0032. The mascot's
-                  matching pose lives in the resident corner, not inline here. */}
-              <p aria-hidden className="text-[13px] italic shimmer-text">
-                {phrase}…
-              </p>
-              <span className="sr-only">Advisor is thinking</span>
-            </div>
-          );
-        })()}
+        {/* The in-flight waiting indicator (ADR 0024) now lives in Fordhawke's
+            thought bubble, rendered as a pane overlay above — not here in the
+            message flow. */}
         {/* Floor for the resident: reserves the bottom band so the last
             message's text clears the ram's ~130px overlay instead of running
             under it. The ram stands in this gap, above the composer. */}
