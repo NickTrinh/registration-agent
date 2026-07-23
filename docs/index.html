@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RamPlan — Privacy Policy</title>
+<style>
+  :root {
+    --bg: #faf9f7; --fg: #2b2724; --muted: #6b6560; --rule: #e6e1da;
+    --accent: #7a0019; --card: #ffffff; --chip: #f2ede6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1817; --fg: #e8e3dc; --muted: #a49c93; --rule: #38332e;
+      --accent: #e0b0bb; --card: #232019; --chip: #2a2621;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 24px; margin-bottom: 32px; }
+  h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 20px; margin: 40px 0 12px; letter-spacing: -0.01em; }
+  h3 { font-size: 16px; margin: 26px 0 8px; }
+  .meta { color: var(--muted); font-size: 14px; }
+  .meta strong { color: var(--fg); font-weight: 600; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul { padding-left: 22px; }
+  li { margin: 7px 0; }
+  .lede { background: var(--chip); border-radius: 12px; padding: 4px 22px; margin: 24px 0; }
+  .table-scroll { overflow-x: auto; margin: 16px 0; -webkit-overflow-scrolling: touch; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 480px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  code { background: var(--chip); padding: 1px 6px; border-radius: 5px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .callout { border-left: 3px solid var(--accent); padding: 2px 18px; margin: 20px 0; background: var(--card); border-radius: 0 8px 8px 0; }
+  footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 13.5px; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>RamPlan — Privacy Policy</h1>
+    <p class="meta">
+      <strong>Effective date:</strong> July 19, 2026 &nbsp;·&nbsp;
+      <strong>Extension:</strong> RamPlan (Chrome extension) &nbsp;·&nbsp;
+      <strong>Contact:</strong> <a href="mailto:pshields7@fordham.edu">pshields7@fordham.edu</a>
+    </p>
+  </header>
+
+  <p>RamPlan is an AI academic advisor that runs inside your browser alongside Fordham's
+  DegreeWorks. This policy explains, in plain terms, what data the extension handles, where it
+  goes, and what it never does.</p>
+
+  <div class="lede">
+    <h2 style="margin-top:24px">The short version</h2>
+    <ul>
+      <li><strong>RamPlan has no server.</strong> The developer operates no backend, database,
+        or analytics. No data is ever sent to the developer, and none can be — there is nowhere
+        for it to go.</li>
+      <li><strong>Your data stays on your device</strong>, in your browser's local storage,
+        except for the specific content RamPlan sends to Anthropic to generate advice — which
+        you authorize with your own Anthropic API key.</li>
+      <li><strong>Your name, student ID, and advisor's name and email are never transmitted to
+        Anthropic.</strong> They are removed before any request leaves your browser and
+        re-inserted only when displaying results on your screen.</li>
+      <li><strong>No tracking, no advertising, no sale of data</strong>, ever.</li>
+    </ul>
+  </div>
+
+  <h2>What data RamPlan handles</h2>
+  <p>RamPlan works with the following data, all read from systems you are already logged in to:</p>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>Data</th><th>Source</th><th>Where it lives</th></tr></thead>
+    <tbody>
+      <tr><td>Your Anthropic API key</td><td>You enter it in Settings</td><td>Your browser (<code>chrome.storage.local</code>) — on your device only</td></tr>
+      <tr><td>Your DegreeWorks degree audit (requirements, completed and remaining courses, GPA, term data)</td><td>Fordham DegreeWorks, via your existing logged-in session</td><td>Your browser (<code>chrome.storage.local</code>)</td></tr>
+      <tr><td>Your name, Banner student ID, and advisor's name and email</td><td>Fordham DegreeWorks</td><td>Your browser only — <strong>never sent to Anthropic</strong> (see below)</td></tr>
+      <tr><td>A short advising profile RamPlan derives from your conversations (e.g. "prefers morning classes")</td><td>Generated on your device from your chats</td><td>Your browser (<code>chrome.storage.local</code>)</td></tr>
+      <tr><td>Course catalog for a term you choose to load</td><td>Fordham Banner, via your existing logged-in session</td><td>Your browser (<code>IndexedDB</code>)</td></tr>
+      <tr><td>Your chat messages with the advisor</td><td>You type them</td><td>Your browser session storage</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>RamPlan does <strong>not</strong> collect your Fordham password or login credentials. It
+  reads DegreeWorks and Banner through the session you have already authenticated in your own
+  browser; it never sees or stores your Fordham login.</p>
+
+  <h2>What is sent off your device, and to whom</h2>
+  <p>RamPlan makes network requests to exactly two destinations, both of which you initiate:</p>
+
+  <h3>1. Fordham (DegreeWorks and Banner)</h3>
+  <p>RamPlan reads your degree audit and the course catalog from Fordham's own systems, using
+  your existing authenticated session. This data does not leave Fordham's environment except to
+  be stored locally in your browser.</p>
+
+  <h3>2. Anthropic (the Claude API)</h3>
+  <p>To generate advice, RamPlan sends the following to Anthropic using <strong>your own API
+  key</strong>: the text of your degree audit <strong>with all personal identifiers
+  removed</strong>, your chat messages, your derived advising profile, and course-catalog
+  details relevant to your questions. This is governed by
+  <a href="https://www.anthropic.com/legal/privacy">Anthropic's Privacy Policy</a> and, for API
+  usage, Anthropic's Commercial Terms — under which <strong>API inputs and outputs are not used
+  to train models</strong>.</p>
+
+  <div class="callout">
+    <h3 style="margin-top:14px">How personal identifiers are protected</h3>
+    <p>Your <strong>name, Banner student ID, and advisor's name and email are removed from the
+    audit before any request is built</strong> — the component that prepares audit text for
+    Anthropic is written so that it cannot read those fields in the first place. In their place
+    it emits neutral placeholders (for example, <code>[NAME]</code>). Your real name is
+    substituted back in only when advice is displayed on your screen, locally in your browser.
+    As a result, these identifiers are never transmitted to Anthropic under any circumstance.</p>
+  </div>
+
+  <h2>Sensitive data</h2>
+  <p>Your degree audit is an education record and is treated as sensitive. RamPlan handles it
+  only to provide the advising features you request, stores it solely on your device, and —
+  apart from the de-identified content described above — does not transmit it anywhere. RamPlan
+  does not use any data for advertising, profiling unrelated to advising, credit assessment, or
+  any purpose beyond answering your academic-planning questions.</p>
+
+  <h2>Data retention and your controls</h2>
+  <ul>
+    <li><strong>Everything RamPlan stores lives on your device.</strong> You are in control of
+      it at all times.</li>
+    <li><strong>Uninstalling RamPlan deletes all of its local data</strong>, including your API
+      key, stored audit, profile, memories, and course catalog.</li>
+    <li>You can <strong>remove your API key or clear stored data from the extension's
+      Settings</strong> at any time.</li>
+    <li>Because there is no server, there is no separate copy of your data to request, export,
+      or delete elsewhere — removing it locally removes it completely.</li>
+    <li>Data you send to Anthropic is subject to Anthropic's retention practices; consult their
+      privacy policy for details.</li>
+  </ul>
+
+  <h2>Children's privacy</h2>
+  <p>RamPlan is intended for university students and is not directed to children under 13.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes, the updated version will be posted at this URL with a revised
+  effective date.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this policy or RamPlan's data practices:
+  <a href="mailto:pshields7@fordham.edu">pshields7@fordham.edu</a></p>
+
+  <footer>
+    RamPlan is an independent student project and is not endorsed by or officially affiliated
+    with Fordham University. "Fordham," "DegreeWorks," and "Banner" are used only to describe
+    interoperation with those systems.
+  </footer>
+</div>
+</body>
+</html>

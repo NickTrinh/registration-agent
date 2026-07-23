@@ -32,3 +32,8 @@ Thumbs.db
 *.swp
 *~
 __pycache__/
+
+# Reverse-engineered API notes — keep out of this PUBLIC repo.
+# Glob, not one filename: degreeworks-api-reference.md (46KB of captured endpoints)
+# was left uncovered and would be staged by any `git add -A`.
+notes/degreeworks-api*.md

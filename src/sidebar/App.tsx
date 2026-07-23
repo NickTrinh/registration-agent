@@ -4,8 +4,8 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import AuditChat from "./pages/AuditChat";
 import Settings from "./pages/Settings";
-import logoUrl from "../../tools/mascot/assets/logo.png";
-import logoDarkUrl from "../../tools/mascot/assets/logo-dark.png";
+import logoUrl from "../../tools/mascot/assets/logo-header.png";
+import logoDarkUrl from "../../tools/mascot/assets/logo-header-dark.png";
 import {
   applyTheme,
   loadThemePreference,
